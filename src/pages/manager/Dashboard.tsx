@@ -1,0 +1,522 @@
+import React, { useState, useEffect } from 'react';
+import { useSupabaseAuth } from "@/contexts/SupabaseAuthContext";
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Link } from 'react-router-dom';
+import DashboardLayout from '@/components/DashboardLayout';
+import {
+  Calendar,
+  AlertCircle,
+  CheckCircle,
+  MapPin,
+  Loader2,
+  Building,
+  Phone,
+  Mail,
+  User,
+  X,
+  Home
+} from 'lucide-react';
+import { toast } from 'sonner';
+
+interface VendorStats {
+  pending: number;
+  approved: number;
+  total: number;
+  rejected: number;
+}
+
+interface AppointmentStats {
+  total: number;
+  completed: number;
+}
+
+interface PendingVendor {
+  id: string;
+  shopName: string;
+  description?: string | null;
+  address?: string | null;
+  city?: string | null;
+  state?: string | null;
+  zipCode?: string | null;
+  email?: string | null;
+  phone?: string | null;
+  ownerName?: string;
+  serviceCount?: number;
+  productCount?: number;
+  employeeCount?: number;
+  status: string;
+  createdAt: string;
+}
+
+interface RecentAppointment {
+  id: string;
+  customerName: string;
+  vendorName: string;
+  serviceName: string;
+  scheduledDate: string;
+  scheduledTime: string;
+  status: string;
+}
+
+const ManagerDashboard = () => {
+  const { user } = useSupabaseAuth();
+  const [vendorStats, setVendorStats] = useState<VendorStats>({
+    pending: 0,
+    approved: 0,
+    total: 0,
+    rejected: 0,
+  });
+  const [appointmentStats, setAppointmentStats] = useState<AppointmentStats>({
+    total: 0,
+    completed: 0,
+  });
+  const [pendingVendors, setPendingVendors] = useState<PendingVendor[]>([]);
+  const [recentAppointments, setRecentAppointments] = useState<RecentAppointment[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [processingVendorId, setProcessingVendorId] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetchManagerData();
+  }, []);
+
+  const fetchManagerData = async () => {
+    try {
+      setLoading(true);
+
+      // Import managerApi dynamically to avoid circular dependencies
+      const { managerApi } = await import('@/lib/managerApi');
+
+      console.log('📡 [Dashboard Component] Fetching manager dashboard data...');
+      const result = await managerApi.getDashboard();
+
+      console.log('📡 [Dashboard Component] Received result:', result);
+
+      if (!result.success) {
+        console.error('❌ [Dashboard Component] API returned error:', result.message);
+        throw new Error(result.message || 'Failed to load dashboard data');
+      }
+
+      if (!result.data) {
+        console.error('❌ [Dashboard Component] No data in result:', result);
+        throw new Error('No data received from API');
+      }
+
+      console.log('✅ [Dashboard Component] Data received successfully:', result.data);
+
+      const payload = (result.data as any)?.data ?? result.data;
+      const {
+        vendorStats = {},
+        appointmentStats = {},
+        pendingVendors = [],
+        recentAppointments = [],
+      } = payload || {};
+
+      setVendorStats({
+        pending: vendorStats?.pending ?? 0,
+        approved: vendorStats?.approved ?? 0,
+        total: vendorStats?.total ?? 0,
+        rejected: vendorStats?.rejected ?? 0,
+      });
+
+      setAppointmentStats({
+        total: appointmentStats?.total ?? 0,
+        completed: appointmentStats?.completed ?? 0,
+      });
+
+      setPendingVendors(
+        Array.isArray(pendingVendors)
+          ? pendingVendors.map((vendor) => ({
+            ...vendor,
+            createdAt: vendor.createdAt || new Date().toISOString(),
+          }))
+          : []
+      );
+      setRecentAppointments(
+        Array.isArray(recentAppointments)
+          ? recentAppointments.map((appointment) => ({
+            ...appointment,
+            scheduledDate: appointment.scheduledDate || new Date().toISOString(),
+            scheduledTime: appointment.scheduledTime || '',
+          }))
+          : []
+      );
+
+      toast.success('Dashboard data loaded successfully');
+    } catch (error: any) {
+      console.error('❌ Error loading manager data:', error);
+      console.error('Error details:', error.message);
+      toast.error(
+        error.message || 'Failed to load manager dashboard data. Please ensure the backend server is running on port 3001.',
+        { duration: 5000 }
+      );
+
+      setVendorStats({ pending: 0, approved: 0, total: 0, rejected: 0 });
+      setAppointmentStats({ total: 0, completed: 0 });
+      setPendingVendors([]);
+      setRecentAppointments([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleVendorAction = async (vendorId: string, action: 'approve' | 'reject') => {
+    try {
+      setProcessingVendorId(vendorId);
+      // Import managerApi dynamically
+      const { managerApi } = await import('@/lib/managerApi');
+
+      console.log(`📡 ${action === 'approve' ? 'Approving' : 'Rejecting'} vendor ${vendorId}...`);
+
+      let result;
+      if (action === 'approve') {
+        result = await managerApi.approveVendor(vendorId);
+      } else {
+        result = await managerApi.rejectVendor(vendorId, '');
+      }
+
+      if (!result.success) {
+        throw new Error(result.message || `Failed to ${action} vendor`);
+      }
+
+      toast.success(`Vendor ${action}d successfully! Email notification sent.`, {
+        description: action === 'approve'
+          ? 'The vendor can now access their dashboard.'
+          : 'Rejection email sent to vendor.'
+      });
+
+      await fetchManagerData(); // Refresh data
+    } catch (error: any) {
+      console.error(`❌ Error ${action}ing vendor:`, error);
+      toast.error(error.message || `Failed to ${action} vendor. Please try again.`);
+    } finally {
+      setProcessingVendorId(null);
+    }
+  };
+
+
+
+  if (loading) {
+    return (
+      <DashboardLayout>
+        <div className="min-h-screen bg-background flex items-center justify-center">
+          <div className="text-center">
+            <Loader2 className="w-8 h-8 animate-spin text-primary mx-auto mb-4" />
+            <p className="text-muted-foreground">Loading manager dashboard...</p>
+          </div>
+        </div>
+      </DashboardLayout>
+    );
+  }
+
+  return (
+    <DashboardLayout>
+      <div className="container mx-auto px-4 py-8">
+        {/* Header */}
+        <div className="mb-8">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-3xl font-serif font-bold text-[#4e342e]">
+                Manager Dashboard
+              </h1>
+              <p className="text-[#6d4c41] mt-2">
+                Welcome back, {user?.firstName}! Manage assignments and monitor operations.
+              </p>
+            </div>
+            <Button onClick={fetchManagerData} disabled={loading}>Refresh</Button>
+          </div>
+        </div>
+
+        {/* Stats Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          <Card className="border-0 bg-white shadow-lg">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-[#6d4c41]">Pending Vendor Applications</p>
+                  <p className="text-2xl font-bold text-[#4e342e]">{vendorStats.pending}</p>
+                  <p className="text-xs text-[#6d4c41] mt-1">Requires approval</p>
+                </div>
+                <div className="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center">
+                  <AlertCircle className="w-6 h-6 text-orange-600" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="border-0 bg-white shadow-lg">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-[#6d4c41]">Total Active Vendors</p>
+                  <p className="text-2xl font-bold text-green-600">{vendorStats.approved}</p>
+                  <p className="text-xs text-[#6d4c41] mt-1">Out of {vendorStats.total} total</p>
+                </div>
+                <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
+                  <CheckCircle className="w-6 h-6 text-green-600" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="border-0 bg-white shadow-lg">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-[#6d4c41]">Total Appointments</p>
+                  <p className="text-2xl font-bold text-blue-600">{appointmentStats.total}</p>
+                  <p className="text-xs text-[#6d4c41] mt-1">{appointmentStats.completed} completed</p>
+                </div>
+                <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+                  <Calendar className="w-6 h-6 text-blue-600" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="border-0 bg-white shadow-lg">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-[#6d4c41]">Rejected Vendors</p>
+                  <p className="text-2xl font-bold text-red-600">{vendorStats.rejected}</p>
+                  <p className="text-xs text-[#6d4c41] mt-1">Not approved</p>
+                </div>
+                <div className="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center">
+                  <X className="w-6 h-6 text-red-600" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          {/* Pending Vendor Applications */}
+          <Card className="border-0 bg-white shadow-lg">
+            <CardHeader>
+              <CardTitle className="text-xl font-serif font-bold text-[#4e342e] flex items-center">
+                <AlertCircle className="w-5 h-5 mr-2 text-orange-500" />
+                Pending Vendor Applications
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {pendingVendors.length > 0 ? (
+                  pendingVendors
+                    .slice(0, 3)
+                    .map((vendor) => (
+                      <div key={vendor.id} className="p-4 border border-[#f8d7da] rounded-lg bg-[#fdf6f0]">
+                        <div className="flex items-center justify-between mb-3">
+                          <div>
+                            <h4 className="font-semibold text-[#4e342e]">{vendor.shopName}</h4>
+                            {vendor.ownerName && (
+                              <p className="text-sm text-[#6d4c41]">{vendor.ownerName}</p>
+                            )}
+                          </div>
+                          <Badge className="bg-yellow-100 text-yellow-800">
+                            {vendor.status?.toUpperCase()}
+                          </Badge>
+                        </div>
+                        <div className="space-y-2 text-sm text-[#6d4c41] mb-3">
+                          {vendor.description && (
+                            <p className="text-sm text-[#6d4c41] mb-2">{vendor.description}</p>
+                          )}
+                          {(vendor.address || vendor.city || vendor.state || vendor.zipCode) && (
+                            <div className="flex items-center space-x-2">
+                              <MapPin className="w-4 h-4" />
+                              <span>{[vendor.address, vendor.city, vendor.state, vendor.zipCode].filter(Boolean).join(', ')}</span>
+                            </div>
+                          )}
+                          {vendor.email && (
+                            <div className="flex items-center space-x-2">
+                              <Mail className="w-4 h-4" />
+                              <span>{vendor.email}</span>
+                            </div>
+                          )}
+                          {vendor.phone && (
+                            <div className="flex items-center space-x-2">
+                              <Phone className="w-4 h-4" />
+                              <span>{vendor.phone}</span>
+                            </div>
+                          )}
+                          {(vendor.serviceCount !== undefined || vendor.productCount !== undefined || vendor.employeeCount !== undefined) && (
+                            <div className="flex items-center gap-4 mt-3 pt-3 border-t border-[#d7ccc8]">
+                              {vendor.serviceCount !== undefined && (
+                                <div className="text-xs">
+                                  <span className="font-semibold text-[#4e342e]">{vendor.serviceCount}</span> Services
+                                </div>
+                              )}
+                              {vendor.productCount !== undefined && (
+                                <div className="text-xs">
+                                  <span className="font-semibold text-[#4e342e]">{vendor.productCount}</span> Products
+                                </div>
+                              )}
+                              {vendor.employeeCount !== undefined && (
+                                <div className="text-xs">
+                                  <span className="font-semibold text-[#4e342e]">{vendor.employeeCount}</span> Employees
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                        <div className="flex space-x-2">
+                          <Button
+                            size="sm"
+                            className="bg-green-600 hover:bg-green-700 text-white"
+                            onClick={() => handleVendorAction(vendor.id, 'approve')}
+                            disabled={processingVendorId === vendor.id}
+                          >
+                            {processingVendorId === vendor.id ? (
+                              <Loader2 className="w-3 h-3 mr-1 animate-spin" />
+                            ) : (
+                              <CheckCircle className="w-3 h-3 mr-1" />
+                            )}
+                            Approve
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="border-red-500 text-red-500 hover:bg-red-500 hover:text-white"
+                            onClick={() => handleVendorAction(vendor.id, 'reject')}
+                            disabled={processingVendorId === vendor.id}
+                          >
+                            {processingVendorId === vendor.id ? (
+                              <Loader2 className="w-3 h-3 mr-1 animate-spin" />
+                            ) : (
+                              <X className="w-3 h-3 mr-1" />
+                            )}
+                            Reject
+                          </Button>
+                        </div>
+                      </div>
+                    ))
+                ) : (
+                  <div className="text-center py-8">
+                    <Building className="w-12 h-12 text-[#6d4c41] mx-auto mb-4" />
+                    <p className="text-[#6d4c41]">No pending vendor applications</p>
+                  </div>
+                )}
+              </div>
+              {pendingVendors.length > 3 && (
+                <div className="mt-4 flex justify-end">
+                  <Link to="/manager/pending-vendors">
+                    <Button variant="outline" className="border-[#4e342e] text-[#4e342e] hover:bg-[#4e342e] hover:text-white">
+                      View more ({pendingVendors.length - 3})
+                    </Button>
+                  </Link>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+
+          {/* Recent Appointments */}
+          <Card className="border-0 bg-white shadow-lg">
+            <CardHeader>
+              <CardTitle className="text-xl font-serif font-bold text-[#4e342e] flex items-center">
+                <Calendar className="w-5 h-5 mr-2 text-blue-500" />
+                Recent Appointments
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {recentAppointments.length > 0 ? (
+                  recentAppointments.map((appointment) => (
+                    <div key={appointment.id} className="flex items-center justify-between p-4 bg-[#fdf6f0] rounded-lg">
+                      <div className="flex items-center space-x-4">
+                        <div className="w-10 h-10 bg-[#4e342e] rounded-full flex items-center justify-center">
+                          <User className="w-5 h-5 text-white" />
+                        </div>
+                        <div>
+                          <h4 className="font-semibold text-[#4e342e]">
+                            {appointment.customerName}
+                          </h4>
+                          <p className="text-sm text-[#6d4c41]">{appointment.vendorName}</p>
+                          <p className="text-sm text-[#6d4c41]">{appointment.serviceName}</p>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-sm text-[#6d4c41] mb-1">
+                          {new Date(appointment.scheduledDate).toLocaleDateString()}
+                        </div>
+                        <div className="text-sm text-[#6d4c41] mb-2">
+                          {appointment.scheduledTime}
+                        </div>
+                        <Badge className={`px-2 py-1 text-xs ${appointment.status === 'COMPLETED' ? 'bg-green-100 text-green-800' :
+                          appointment.status === 'CONFIRMED' ? 'bg-blue-100 text-blue-800' :
+                            appointment.status === 'PENDING' ? 'bg-yellow-100 text-yellow-800' :
+                              'bg-red-100 text-red-800'
+                          }`}>
+                          {appointment.status}
+                        </Badge>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div className="text-center py-8">
+                    <Calendar className="w-12 h-12 text-[#6d4c41] mx-auto mb-4" />
+                    <p className="text-[#6d4c41]">No recent appointments</p>
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Quick Actions */}
+        <div className="mt-8">
+          <Card className="border-0 bg-white shadow-lg">
+            <CardHeader>
+              <CardTitle className="text-xl font-serif font-bold text-[#4e342e]">
+                Quick Actions
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <Link to="/manager/pending-vendors">
+                  <Button className="bg-[#4e342e] hover:bg-[#3b2c26] text-white justify-start h-auto p-4 w-full">
+                    <div className="text-left">
+                      <AlertCircle className="w-5 h-5 mb-2" />
+                      <div className="font-semibold">Pending Vendors</div>
+                      <div className="text-xs opacity-80">Review applications</div>
+                    </div>
+                  </Button>
+                </Link>
+                <Link to="/manager/vendors">
+                  <Button variant="outline" className="border-[#4e342e] text-[#4e342e] hover:bg-[#4e342e] hover:text-white justify-start h-auto p-4 w-full">
+                    <div className="text-left">
+                      <Building className="w-5 h-5 mb-2" />
+                      <div className="font-semibold">All Vendors</div>
+                      <div className="text-xs opacity-80">Manage vendors</div>
+                    </div>
+                  </Button>
+                </Link>
+                <Link to="/manager/appointments">
+                  <Button variant="outline" className="border-[#4e342e] text-[#4e342e] hover:bg-[#4e342e] hover:text-white justify-start h-auto p-4 w-full">
+                    <div className="text-left">
+                      <Calendar className="w-5 h-5 mb-2" />
+                      <div className="font-semibold">Appointments</div>
+                      <div className="text-xs opacity-80">Manage bookings</div>
+                    </div>
+                  </Button>
+                </Link>
+                <Link to="/manager/at-home-appointments">
+                  <Button variant="outline" className="border-[#4e342e] text-[#4e342e] hover:bg-[#4e342e] hover:text-white justify-start h-auto p-4 w-full">
+                    <div className="text-left">
+                      <Home className="w-5 h-5 mb-2" />
+                      <div className="font-semibold">At-Home Appointments</div>
+                      <div className="text-xs opacity-80">Assign vendors</div>
+                    </div>
+                  </Button>
+                </Link>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    </DashboardLayout>
+  );
+};
+
+export default ManagerDashboard;
