@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import DashboardLayout from '@/components/DashboardLayout';
 import {
@@ -21,7 +21,9 @@ import {
   ShoppingCart,
   AlertCircle,
   CheckCircle,
-  Star
+  Star,
+  Image as ImageIcon,
+  Upload
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -41,6 +43,8 @@ interface Product {
   isActive: boolean;
   rating: number;
   totalSales: number;
+  image_url?: string;
+  imageUrl?: string;
 }
 
 interface ProductForm {
@@ -50,6 +54,8 @@ interface ProductForm {
   stock: string;
   sku: string;
   description: string;
+  image: File | null;
+  imagePreview: string | null;
 }
 
 const ProductsPage = () => {
@@ -65,7 +71,9 @@ const ProductsPage = () => {
     price: '',
     stock: '',
     sku: '',
-    description: ''
+    description: '',
+    image: null,
+    imagePreview: null
   });
 
   const categories = [
@@ -115,7 +123,10 @@ const ProductsPage = () => {
       price: '',
       stock: '',
       sku: '',
-      description: ''
+
+      description: '',
+      image: null,
+      imagePreview: null
     });
     setEditingProduct(null);
   };
@@ -127,59 +138,102 @@ const ProductsPage = () => {
 
   const handleEditProduct = (product: Product) => {
     setForm({
-      name: product.name,
-      category: product.category,
-      price: product.price.toString(),
-      stock: product.stock.toString(),
-      sku: product.sku,
-      description: product.description
+      name: product.name || product.product_name || '',
+      category: product.category || product.category_id || '',
+      price: (product.price || product.price_cdf || 0).toString(),
+      stock: (product.stock || product.stock_quantity || 0).toString(),
+      sku: product.sku || product.sku_code || '',
+      description: product.description || '',
+      image: null,
+      imagePreview: product.imageUrl || product.image_url || null
     });
     setEditingProduct(product);
     setIsDialogOpen(true);
   };
 
-  const handleSaveProduct = async () => {
-    if (!form.name || !form.category || !form.price || !form.stock) {
-      toast.error('Please fill in all required fields');
-      return;
-    }
-
-    if (!user?.id) {
-      toast.error('User not authenticated');
-      return;
-    }
-
-    const productData = {
-      name: form.name,
-      category: form.category,
-      price: form.price,
-      stock: form.stock,
-      sku: form.sku,
-      description: form.description
-    };
-
-    try {
-      const productPayload = {
-        product_name: form.name,
-        category_id: form.category,
-        price_cdf: parseFloat(form.price),
-        stock_quantity: parseInt(form.stock),
-        sku_code: form.sku,
-        description: form.description
-      };
-
-      if (isNaN(productPayload.price_cdf) || isNaN(productPayload.stock_quantity)) {
-        toast.error('Price and Stock must be valid numbers');
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 10 * 1024 * 1024) { // 10MB limit
+        toast.error('Image size must be less than 10MB');
         return;
       }
 
+      const allowedTypes = ['image/png', 'image/jpeg', 'image/webp'];
+      if (!allowedTypes.includes(file.type)) {
+        toast.error('Only PNG, JPEG, and WebP images are allowed');
+        return;
+      }
+
+      setForm(prev => ({
+        ...prev,
+        image: file,
+        imagePreview: URL.createObjectURL(file)
+      }));
+    }
+  };
+
+  const handleSaveProduct = async () => {
+    try {
+      if (!form.name || !form.category || !form.price || !form.stock) {
+        toast.error('Please fill in all required fields');
+        return;
+      }
+
+      if (!user?.id) {
+        toast.error('User not authenticated');
+        return;
+      }
+
+      const formData = new FormData();
+      formData.append('product_name', form.name);
+      formData.append('category_id', form.category);
+      formData.append('price_cdf', form.price);
+      formData.append('stock_quantity', form.stock);
+      formData.append('sku_code', form.sku);
+      formData.append('description', form.description);
+
+      if (form.image) {
+        formData.append('image', form.image);
+      }
+
+      const config = {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      };
+
       if (editingProduct) {
         // Update existing product
-        await api.put(`/vendor/${user.id}/products/${editingProduct.id}`, productPayload);
+        // Note: Image update is not supported in this PUT endpoint yet as per backend code
+        await api.put(`/vendor/${user.id}/products/${editingProduct.id}`, {
+          product_name: form.name,
+          category_id: form.category,
+          price_cdf: parseFloat(form.price),
+          stock_quantity: parseInt(form.stock),
+          sku_code: form.sku,
+          description: form.description,
+          isActive: editingProduct.isActive
+        });
         toast.success('Product updated successfully');
       } else {
         // Add new product via Backend API
-        await api.post(`/vendor/${user.id}/products`, productPayload);
+        // 1. Prepare FormData with Keys matching Backend Schema EXACTLY
+        const formData = new FormData();
+        formData.append('product_name', form.name);
+        formData.append('category_id', form.category);
+        formData.append('price_cdf', form.price);
+        formData.append('stock_quantity', form.stock);
+        formData.append('sku_code', form.sku);
+        formData.append('description', form.description);
+
+        if (form.image) {
+          formData.append('image', form.image);
+        }
+
+        console.log('📤 Sending Product Data:', Object.fromEntries(formData));
+
+        await api.post(`/vendor/${user.id}/products`, formData, config);
         toast.success('Product added successfully');
       }
 
@@ -187,10 +241,31 @@ const ProductsPage = () => {
       resetForm();
       // Refresh the product list
       fetchProducts();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error saving product:', error);
-      toast.error('Failed to save product');
+      if (error.response) {
+        console.error('Server Error Data:', error.response.data);
+        console.error('Server Error Status:', error.response.status);
+
+        let errorMessage = 'Server Error';
+        if (typeof error.response.data === 'string') {
+          errorMessage = error.response.data; // Capture HTML/text response
+        } else if (error.response.data?.message) {
+          errorMessage = error.response.data.message;
+        } else if (error.response.data?.error) {
+          errorMessage = error.response.data.error;
+        }
+
+        // Truncate if too long (e.g. HTML dump)
+        if (errorMessage.length > 200) errorMessage = errorMessage.substring(0, 200) + '...';
+
+        toast.error(`Failed to save product: ${errorMessage}`);
+      } else {
+        toast.error('Failed to save product. Network error?');
+      }
     }
+
+
   };
 
   const handleDeleteProduct = async (productId: string) => {
@@ -278,8 +353,16 @@ const ProductsPage = () => {
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 bg-[#4e342e] rounded-lg flex items-center justify-center">
-                      <Package className="w-6 h-6 text-white" />
+                    <div className="w-16 h-16 bg-[#4e342e] rounded-lg overflow-hidden flex items-center justify-center flex-shrink-0">
+                      {product.imageUrl || product.image_url ? (
+                        <img
+                          src={product.imageUrl || product.image_url}
+                          alt={product.name}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <Package className="w-8 h-8 text-white" />
+                      )}
                     </div>
                     <div>
                       <CardTitle className="text-lg font-serif text-[#4e342e]">
@@ -385,6 +468,11 @@ const ProductsPage = () => {
               <DialogTitle className="text-xl font-serif text-[#4e342e]">
                 {editingProduct ? 'Edit Product' : 'Add New Product'}
               </DialogTitle>
+              <DialogDescription className="text-[#6d4c41]">
+                {editingProduct
+                  ? 'Update the details of your product below.'
+                  : 'Fill in the details to add a new product to your inventory.'}
+              </DialogDescription>
             </DialogHeader>
 
             <div className="space-y-4">
@@ -474,6 +562,47 @@ const ProductsPage = () => {
                   className="border-[#4e342e] text-[#4e342e] mt-2"
                   rows={3}
                 />
+              </div>
+
+              <div>
+                <Label htmlFor="image" className="text-[#4e342e] font-medium">
+                  Product Image
+                </Label>
+                <div className="mt-2 flex items-center gap-4">
+                  {form.imagePreview ? (
+                    <div className="relative w-24 h-24 rounded-lg overflow-hidden border border-[#4e342e]">
+                      <img
+                        src={form.imagePreview}
+                        alt="Preview"
+                        className="w-full h-full object-cover"
+                      />
+                      <Button
+                        variant="destructive"
+                        size="icon"
+                        className="absolute top-0 right-0 h-6 w-6 rounded-none rounded-bl-lg"
+                        onClick={() => setForm(prev => ({ ...prev, image: null, imagePreview: null }))}
+                      >
+                        <Trash2 className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="w-24 h-24 rounded-lg border-2 border-dashed border-[#4e342e] flex items-center justify-center bg-[#fdf6f0]">
+                      <ImageIcon className="h-8 w-8 text-[#4e342e] opacity-50" />
+                    </div>
+                  )}
+                  <div className="flex-1">
+                    <Input
+                      id="image"
+                      type="file"
+                      accept="image/png, image/jpeg, image/webp"
+                      onChange={handleImageChange}
+                      className="border-[#4e342e] text-[#4e342e] file:text-[#4e342e]"
+                    />
+                    <p className="text-xs text-[#6d4c41] mt-1">
+                      Max 10MB. PNG, JPEG, WebP only.
+                    </p>
+                  </div>
+                </div>
               </div>
 
               <div className="flex justify-end gap-3 pt-4">

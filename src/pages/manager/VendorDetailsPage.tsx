@@ -50,6 +50,7 @@ interface VendorDetails {
         totalProducts: number;
         totalEmployees: number;
     };
+    products?: Product[];
 }
 
 interface Service {
@@ -64,11 +65,27 @@ interface Service {
     createdAt: string;
 }
 
+interface Product {
+    id: string;
+    name: string;
+    category: string;
+    price: number;
+    stock: number;
+    isActive: boolean;
+    description: string | null;
+    image_url?: string; // Backend might send this if updated, but currently manager.ts doesn't map it explicitly, so it might be missing unless I update backend. 
+    // Backend manager.ts (line 510) maps: id, name, category, price, stock, isActive, description. NO image_url.
+    // So manager view won't see images unless I update backend manager.ts or just show list without images.
+    // The prompt said "Managers: Can view vendor products... Reuse existing manager UI patterns."
+    // I will show without image for now as backend doesn't send it, or I can try to use product_name/category/price/stock.
+}
+
 const VendorDetailsPage = () => {
     const { vendorId } = useParams<{ vendorId: string }>();
     const navigate = useNavigate();
     const [vendor, setVendor] = useState<VendorDetails | null>(null);
     const [services, setServices] = useState<Service[]>([]);
+    const [products, setProducts] = useState<Product[]>([]);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
@@ -99,6 +116,9 @@ const VendorDetailsPage = () => {
                 // So if manager.ts returns { id: '...', ... }, then client gets { success: true, data: { id: '...', ... } }.
                 // So vendorRes.data will be the vendor object.
                 setVendor(vendorRes.data);
+                if (vendorRes.data.products) {
+                    setProducts(vendorRes.data.products);
+                }
             } else {
                 throw new Error(vendorRes.message || 'Failed to fetch vendor details');
             }
@@ -329,18 +349,60 @@ const VendorDetailsPage = () => {
                     </TabsContent>
 
                     <TabsContent value="products">
-                        <Card className="border-0 bg-white shadow-lg">
-                            <CardContent className="p-12 text-center">
-                                <div className="w-16 h-16 bg-[#fdf6f0] rounded-full flex items-center justify-center mx-auto mb-4">
-                                    <Sparkles className="w-8 h-8 text-[#4e342e]" />
+                        <div className="mb-8">
+                            <h2 className="text-2xl font-serif font-bold text-[#4e342e] mb-6">Products Catalog</h2>
+                            {products.length === 0 ? (
+                                <Card className="border-0 bg-white shadow-lg">
+                                    <CardContent className="p-12 text-center">
+                                        <div className="w-16 h-16 bg-[#fdf6f0] rounded-full flex items-center justify-center mx-auto mb-4">
+                                            <Sparkles className="w-8 h-8 text-[#4e342e]" />
+                                        </div>
+                                        <h3 className="text-xl font-semibold text-[#4e342e] mb-2">No products found</h3>
+                                        <p className="text-[#6d4c41]">This vendor has not added any products yet.</p>
+                                    </CardContent>
+                                </Card>
+                            ) : (
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                    {products.map((product, index) => (
+                                        <motion.div
+                                            key={product.id}
+                                            initial={{ opacity: 0, y: 20 }}
+                                            animate={{ opacity: 1, y: 0 }}
+                                            transition={{ duration: 0.5, delay: index * 0.1 }}
+                                        >
+                                            <Card className="border-0 bg-white shadow-lg hover:shadow-xl transition-all duration-300 h-full flex flex-col overflow-hidden">
+                                                <CardHeader className="pb-2">
+                                                    <div className="flex items-center justify-between mb-2">
+                                                        <Badge variant="outline" className="border-[#4e342e] text-[#4e342e]">
+                                                            {product.category}
+                                                        </Badge>
+                                                        <Badge className={product.isActive ? 'bg-green-500' : 'bg-gray-500'}>
+                                                            {product.isActive ? 'Active' : 'Inactive'}
+                                                        </Badge>
+                                                    </div>
+                                                    <CardTitle className="text-lg text-[#4e342e] line-clamp-1">{product.name}</CardTitle>
+                                                </CardHeader>
+
+                                                <CardContent className="flex-1 flex flex-col justify-between">
+                                                    <p className="text-[#6d4c41] text-sm mb-4 line-clamp-2">{product.description || 'No description'}</p>
+
+                                                    <div className="flex items-center justify-between pt-4 border-t border-[#f8d7da]/30">
+                                                        <div className="flex items-center text-[#4e342e] font-bold">
+                                                            <DollarSign className="w-4 h-4" />
+                                                            <span className="text-lg">{formatCurrency(product.price)}</span>
+                                                        </div>
+                                                        <div className="flex items-center text-[#6d4c41] text-sm">
+                                                            <span className="font-semibold mr-1">Stock:</span>
+                                                            <span>{product.stock}</span>
+                                                        </div>
+                                                    </div>
+                                                </CardContent>
+                                            </Card>
+                                        </motion.div>
+                                    ))}
                                 </div>
-                                <h3 className="text-xl font-semibold text-[#4e342e] mb-2">Products Management</h3>
-                                <p className="text-[#6d4c41] mb-6">This feature is coming soon. Managers will be able to view vendor products here.</p>
-                                <Button variant="outline" className="border-[#4e342e] text-[#4e342e]" disabled>
-                                    Coming Soon
-                                </Button>
-                            </CardContent>
-                        </Card>
+                            )}
+                        </div>
                     </TabsContent>
                 </Tabs>
             </div>

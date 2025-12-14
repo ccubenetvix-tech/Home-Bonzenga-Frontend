@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
+import { api } from '@/lib/api'; // Added import
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -151,140 +152,35 @@ const VendorDetailsPage = () => {
                 setServices(transformedServices);
             }
 
-            // Set mock data for beauticians and products for now
+            // Fetch products
+            try {
+                const productsResponse = await api.get(`/catalog/products?vendorId=${id}`);
+                const productsData = productsResponse.data as any; // Adjust type as needed
+                console.log('Products data received:', productsData);
+
+                if (productsData && Array.isArray(productsData.products)) {
+                    const transformedProducts: Product[] = productsData.products.map((p: any) => ({
+                        id: p.id,
+                        name: p.product_name,
+                        description: p.description || '',
+                        price: p.price_cdf,
+                        image: p.image_url || '/api/placeholder/150/150',
+                        inStock: p.stock_quantity > 0,
+                        category: p.category_id
+                    }));
+                    setProducts(transformedProducts);
+                } else {
+                    setProducts([]);
+                }
+            } catch (prodError) {
+                console.error('Error fetching products:', prodError);
+                // Fallback to empty or mock if needed, but for now empty
+                setProducts([]);
+            }
+
+            // Set mock data for beauticians for now
             setBeauticians(data.beauticians || []);
-            setProducts(data.products || []);
-        } catch (error) {
-            console.error('Error fetching vendor details:', error);
-            // Fallback to mock data if API fails
-            const mockVendor: Vendor = {
-                id: id || '1',
-                name: 'Elite Beauty Salon',
-                description: 'Premium beauty services with certified professionals. We offer a wide range of beauty treatments in a luxurious and comfortable environment.',
-                address: '123 Main Street, Downtown',
-                city: 'New York',
-                rating: 4.8,
-                reviewCount: 127,
-                distance: 0.5,
-                categories: ['hair', 'face', 'makeup'],
-                images: ['/api/placeholder/800/400', '/api/placeholder/800/400'],
-                isOpen: true,
-                nextAvailableSlot: 'Today 2:00 PM',
-                phone: '+1 (555) 123-4567',
-                email: 'info@elitebeauty.com',
-                workingHours: {
-                    'Monday': '9:00 AM - 7:00 PM',
-                    'Tuesday': '9:00 AM - 7:00 PM',
-                    'Wednesday': '9:00 AM - 7:00 PM',
-                    'Thursday': '9:00 AM - 7:00 PM',
-                    'Friday': '9:00 AM - 8:00 PM',
-                    'Saturday': '8:00 AM - 6:00 PM',
-                    'Sunday': '10:00 AM - 5:00 PM'
-                }
-            };
-
-            const mockBeauticians: Beautician[] = [
-                {
-                    id: '1',
-                    name: 'Sarah Johnson',
-                    specialization: ['Hair Styling', 'Hair Coloring'],
-                    rating: 4.9,
-                    experience: 8,
-                    avatar: '/api/placeholder/100/100',
-                    isAvailable: true,
-                    nextAvailableSlot: 'Today 3:00 PM'
-                },
-                {
-                    id: '2',
-                    name: 'Maria Garcia',
-                    specialization: ['Facial Treatments', 'Makeup'],
-                    rating: 4.7,
-                    experience: 6,
-                    avatar: '/api/placeholder/100/100',
-                    isAvailable: true,
-                    nextAvailableSlot: 'Tomorrow 10:00 AM'
-                },
-                {
-                    id: '3',
-                    name: 'Lisa Chen',
-                    specialization: ['Nail Art', 'Manicure', 'Pedicure'],
-                    rating: 4.8,
-                    experience: 5,
-                    avatar: '/api/placeholder/100/100',
-                    isAvailable: false,
-                    nextAvailableSlot: 'Monday 2:00 PM'
-                }
-            ];
-
-            const mockServices: Service[] = [
-                {
-                    id: '1',
-                    name: 'Haircut & Styling',
-                    description: 'Professional haircut with styling and blow-dry',
-                    duration: 60,
-                    price: 45,
-                    category: 'hair'
-                },
-                {
-                    id: '2',
-                    name: 'Hair Coloring',
-                    description: 'Full hair coloring service with premium products',
-                    duration: 120,
-                    price: 120,
-                    category: 'hair'
-                },
-                {
-                    id: '3',
-                    name: 'Facial Treatment',
-                    description: 'Deep cleansing facial with moisturizing mask',
-                    duration: 90,
-                    price: 80,
-                    category: 'face'
-                },
-                {
-                    id: '4',
-                    name: 'Manicure',
-                    description: 'Classic manicure with nail polish',
-                    duration: 45,
-                    price: 25,
-                    category: 'nail'
-                }
-            ];
-
-            const mockProducts: Product[] = [
-                {
-                    id: '1',
-                    name: 'Premium Hair Shampoo',
-                    description: 'Professional grade shampoo for all hair types',
-                    price: 25,
-                    image: '/api/placeholder/150/150',
-                    inStock: true,
-                    category: 'hair'
-                },
-                {
-                    id: '2',
-                    name: 'Anti-Aging Face Cream',
-                    description: 'Luxury face cream with anti-aging properties',
-                    price: 45,
-                    image: '/api/placeholder/150/150',
-                    inStock: true,
-                    category: 'face'
-                },
-                {
-                    id: '3',
-                    name: 'Nail Art Kit',
-                    description: 'Complete nail art kit with tools and colors',
-                    price: 35,
-                    image: '/api/placeholder/150/150',
-                    inStock: false,
-                    category: 'nail'
-                }
-            ];
-
-            setVendor(mockVendor);
-            setBeauticians(mockBeauticians);
-            setServices(mockServices);
-            setProducts(mockProducts);
+            // Products are now fetched above
         } finally {
             setLoading(false);
         }
@@ -526,6 +422,60 @@ const VendorDetailsPage = () => {
                                 </div>
                             )}
                         </div>
+
+
+                        {/* Products Section */}
+                        <div className="mt-8">
+                            <h2 className="text-2xl font-serif font-bold text-[#4e342e] mb-6">Products</h2>
+                            {products.length === 0 ? (
+                                <div className="text-center py-8 bg-[#f8d7da] bg-opacity-20 rounded-xl">
+                                    <ShoppingCart className="w-12 h-12 text-[#6d4c41] opacity-50 mx-auto mb-3" />
+                                    <p className="text-lg font-semibold text-[#4e342e]">No products available</p>
+                                </div>
+                            ) : (
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    {products.map((product) => (
+                                        <Card key={product.id} className="border-0 bg-white shadow-lg overflow-hidden flex flex-row">
+                                            <div className="w-1/3 min-w-[120px] max-w-[150px]">
+                                                <img
+                                                    src={product.image || '/api/placeholder/150/150'}
+                                                    alt={product.name}
+                                                    className="h-full w-full object-cover"
+                                                />
+                                            </div>
+                                            <CardContent className="p-4 flex-1">
+                                                <div className="flex justify-between items-start mb-2">
+                                                    <h3 className="text-lg font-semibold text-[#4e342e]">{product.name}</h3>
+                                                    <span className="text-lg font-bold text-[#4e342e]">${product.price}</span>
+                                                </div>
+                                                <p className="text-[#6d4c41] text-sm mb-3 line-clamp-2">{product.description}</p>
+                                                <div className="flex items-center justify-between mt-auto">
+                                                    <div className="text-sm text-[#6d4c41]">
+                                                        {product.inStock ? (
+                                                            <span className="text-green-600 font-medium">In Stock</span>
+                                                        ) : (
+                                                            <span className="text-red-500 font-medium">Out of Stock</span>
+                                                        )}
+                                                    </div>
+                                                    <Button
+                                                        size="sm"
+                                                        onClick={() => {
+                                                            const currentQty = selectedProducts[product.id] || 0;
+                                                            updateProductQuantity(product.id, currentQty + 1);
+                                                        }}
+                                                        disabled={!product.inStock}
+                                                        className="bg-[#4e342e] hover:bg-[#6d4c41] text-white"
+                                                    >
+                                                        <Plus className="w-4 h-4 mr-1" />
+                                                        Add
+                                                    </Button>
+                                                </div>
+                                            </CardContent>
+                                        </Card>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
                     </div>
 
                     {/* Booking Summary */}
@@ -607,6 +557,7 @@ const VendorDetailsPage = () => {
                 </div>
             </div>
         </div>
+
     );
 };
 

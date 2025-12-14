@@ -419,7 +419,7 @@ export class SupabaseAuthService {
     try {
       // Add timeout to prevent hanging
       const timeoutPromise = new Promise((_, reject) => {
-        setTimeout(() => reject(new Error('User fetch timeout')), 10000); // Increased to 10 seconds
+        setTimeout(() => reject(new Error('User fetch timeout')), 20000); // Increased to 20 seconds
       });
 
       const userPromise = supabase.auth.getUser();
