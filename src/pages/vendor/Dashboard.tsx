@@ -2,18 +2,19 @@ import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { useSupabaseAuth } from "@/contexts/SupabaseAuthContext";
+import { api } from "@/lib/api";
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Link } from 'react-router-dom';
 import DashboardLayout from '@/components/DashboardLayout';
-import { 
-  Calendar, 
-  Clock, 
-  DollarSign, 
-  User, 
-  Plus, 
-  Eye, 
+import {
+  Calendar,
+  Clock,
+  DollarSign,
+  User,
+  Plus,
+  Eye,
   TrendingUp,
   Package,
   CheckCircle,
@@ -84,26 +85,53 @@ const VendorDashboard = () => {
       navigate('/vendor/pending-approval');
       return;
     }
-    
+
     fetchDashboardData();
   }, [user, vendor, navigate]);
 
   const fetchDashboardData = async () => {
     try {
       setLoading(true);
-      const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:3001/api/vendor/${user?.id}/dashboard`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
+      // Ensure we have necessary IDs
+      if (!user?.id) return;
 
-      if (!response.ok) throw new Error('Failed to load dashboard');
+      // Parallel fetch for optimal performance
+      const [statsRes, profileRes, appointmentsRes, servicesRes] = await Promise.all([
+        // Stats requires Vendor ID (integer/uuid from vendor table)
+        vendor?.id
+          ? api.get(`/dashboard/vendor/stats?vendorId=${vendor.id}`).catch(() => ({ data: {} }))
+          : Promise.resolve({ data: {} }),
 
-      const data = await response.json();
-      setStats(data.stats || null);
-      setRecentAppointments(data.recentAppointments || []);
-      setServices((data.services || []).map((s: any) => ({
+        // Profile requires User ID (guid) - used for ratings/reviews
+        api.get(`/vendor/${user.id}/profile`).catch(() => ({ data: {} })),
+
+        // Appointments requires User ID (guid)
+        api.get(`/vendor/${user.id}/appointments?limit=5`).catch(() => ({ data: { appointments: [] } })),
+
+        // Services requires User ID (guid)
+        api.get(`/vendor/${user.id}/services`).catch(() => ({ data: { services: [] } }))
+      ]);
+
+      const statsData = (statsRes.data || {}) as any;
+      const profileData = (profileRes.data || {}) as any;
+      const appointmentsData = (appointmentsRes.data || {}) as any;
+      const servicesData = (servicesRes.data || {}) as any;
+
+      // Aggregate stats from multiple sources
+      const combinedStats: VendorStats = {
+        newBookings: statsData.newBookings || 0,
+        completedServices: statsData.completedServices || 0,
+        monthlyRevenue: statsData.monthlyRevenue || 0, // Value from stats endpoint
+        totalServices: statsData.totalServices || servicesData.services?.length || 0,
+        pendingBookings: statsData.newBookings || 0, // Using newBookings as proxy for pending
+        totalCustomers: profileData.stats?.totalBookings || 0, // Proxy
+        averageRating: profileData.stats?.averageRating || 0,
+        totalReviews: profileData.stats?.totalReviews || 0
+      };
+
+      setStats(combinedStats);
+      setRecentAppointments(appointmentsData.appointments || []);
+      setServices((servicesData.services || []).map((s: any) => ({
         id: s.id,
         name: s.name,
         price: s.price,
@@ -381,11 +409,10 @@ const VendorDashboard = () => {
                           <p className="text-xs text-[#6d4c41]">${service.price}</p>
                         </div>
                       </div>
-                      <Badge className={`px-2 py-1 text-xs ${
-                        service.isActive 
-                          ? 'bg-[#f8d7da]/30 text-[#4e342e]' 
-                          : 'bg-[#6d4c41]/20 text-[#6d4c41]'
-                      }`}>
+                      <Badge className={`px-2 py-1 text-xs ${service.isActive
+                        ? 'bg-[#f8d7da]/30 text-[#4e342e]'
+                        : 'bg-[#6d4c41]/20 text-[#6d4c41]'
+                        }`}>
                         {service.isActive ? 'Active' : 'Inactive'}
                       </Badge>
                     </div>

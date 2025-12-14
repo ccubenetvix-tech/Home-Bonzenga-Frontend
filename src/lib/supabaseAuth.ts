@@ -66,7 +66,7 @@ export const mapSupabaseAuthError = (error: AuthApiError | AuthError): string =>
   if ('status' in error && error.status === 429) {
     return 'Too many registration attempts. Please wait a few minutes before trying again.'
   }
-  
+
   // Also check error message for rate limit indicators
   if (normalized.includes('too many') || normalized.includes('rate limit') || normalized.includes('429')) {
     return 'Too many registration attempts. Please wait a few minutes before trying again.'
@@ -85,12 +85,12 @@ export class SupabaseAuthService {
         email,
         password,
       })
-      
+
       if (error) {
         console.error('Supabase signup error:', error.message)
         throw error
       }
-      
+
       return data
     } catch (error: any) {
       throw error
@@ -157,17 +157,17 @@ export class SupabaseAuthService {
     try {
       // Validate and trim email
       const trimmedEmail = (data.email || '').trim();
-      
+
       if (!trimmedEmail) {
         return handleSupabaseError(new Error('Email is required'));
       }
-      
+
       // Basic email validation
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       if (!emailRegex.test(trimmedEmail)) {
         return handleSupabaseError(new Error('Please enter a valid email address'));
       }
-      
+
       // Validate password length
       const trimmedPassword = (data.password || '').trim();
       if (!trimmedPassword || trimmedPassword.length < 6) {
@@ -211,11 +211,11 @@ export class SupabaseAuthService {
       // Validate and trim inputs
       const trimmedEmail = (email || '').trim();
       const trimmedPassword = (password || '').trim();
-      
+
       if (!trimmedEmail) {
         throw new Error('Email is required');
       }
-      
+
       if (!trimmedPassword || trimmedPassword.length < 6) {
         throw new Error('Password must be at least 6 characters long');
       }
@@ -234,14 +234,14 @@ export class SupabaseAuthService {
         });
 
         // Provide more specific error messages
-        if (authError.message.includes('Email not confirmed') || 
-            authError.message.includes('email_not_confirmed') ||
-            authError.message.includes('signup_disabled')) {
+        if (authError.message.includes('Email not confirmed') ||
+          authError.message.includes('email_not_confirmed') ||
+          authError.message.includes('signup_disabled')) {
           throw new Error('Please confirm your email address before logging in. Check your inbox for the confirmation link and click it to verify your email.')
-        } else if (authError.message.includes('Invalid login credentials') || 
-                   authError.message.includes('Invalid credentials') ||
-                   authError.message.includes('Invalid password') ||
-                   authError.status === 400) {
+        } else if (authError.message.includes('Invalid login credentials') ||
+          authError.message.includes('Invalid credentials') ||
+          authError.message.includes('Invalid password') ||
+          authError.status === 400) {
           // Provide helpful error message that includes email confirmation reminder
           throw new Error('Invalid email or password. Please check your credentials. If you just confirmed your email, wait a moment and try again.')
         } else {
@@ -257,7 +257,7 @@ export class SupabaseAuthService {
       // Retry logic to handle race conditions with trigger
       let userData = null;
       let userError = null;
-      
+
       for (let attempt = 0; attempt < 3; attempt++) {
         const result = await supabase
           .from('users')
@@ -267,12 +267,12 @@ export class SupabaseAuthService {
           `)
           .eq('id', authData.user.id)
           .maybeSingle();
-        
+
         userData = result.data;
         userError = result.error;
-        
+
         if (userData || (userError && userError.code !== 'PGRST116')) break;
-        
+
         // Wait before retrying (trigger might still be running)
         await new Promise(resolve => setTimeout(resolve, 500 * (attempt + 1)));
       }
@@ -290,7 +290,7 @@ export class SupabaseAuthService {
       // Use upsert to handle race conditions (trigger might create user simultaneously)
       if (!userData) {
         console.warn('User profile not found, attempting to create from auth metadata...');
-        
+
         // First, try one more time to fetch (trigger might have just created it)
         await new Promise(resolve => setTimeout(resolve, 300));
         const finalFetchResult = await supabase
@@ -301,7 +301,7 @@ export class SupabaseAuthService {
           `)
           .eq('id', authData.user.id)
           .maybeSingle();
-        
+
         if (finalFetchResult.data) {
           userData = finalFetchResult.data;
           console.log('✅ User profile found after retry (created by trigger)');
@@ -325,7 +325,7 @@ export class SupabaseAuthService {
                 vendor:vendor(id, shopname, status)
               `)
               .maybeSingle(); // Use maybeSingle to avoid errors if upsert fails
-            
+
             if (upsertResult.data) {
               userData = upsertResult.data;
               console.log('✅ User profile created successfully');
@@ -342,7 +342,7 @@ export class SupabaseAuthService {
                   `)
                   .eq('id', authData.user.id)
                   .maybeSingle();
-                
+
                 if (conflictFetchResult.data) {
                   userData = conflictFetchResult.data;
                   console.log('✅ User profile fetched after conflict');
@@ -365,7 +365,7 @@ export class SupabaseAuthService {
               `)
               .eq('id', authData.user.id)
               .maybeSingle();
-            
+
             if (lastFetchResult.data) {
               userData = lastFetchResult.data;
             }
@@ -391,7 +391,7 @@ export class SupabaseAuthService {
         role: (metadata.role || rawMetadata.role || 'CUSTOMER').toUpperCase() as "ADMIN" | "MANAGER" | "VENDOR" | "CUSTOMER",
         status: 'ACTIVE'
       };
-      
+
       return handleSupabaseSuccess({
         user: fallbackUser,
         session: authData.session
@@ -421,10 +421,10 @@ export class SupabaseAuthService {
       const timeoutPromise = new Promise((_, reject) => {
         setTimeout(() => reject(new Error('User fetch timeout')), 10000); // Increased to 10 seconds
       });
-      
+
       const userPromise = supabase.auth.getUser();
       const { data: { user: authUser }, error: authError } = await Promise.race([userPromise, timeoutPromise]);
-      
+
       if (authError) {
         console.warn('Auth error (not critical):', authError.message);
         // Don't throw, just return null to allow fallback to mock auth
@@ -446,7 +446,7 @@ export class SupabaseAuthService {
           `)
           .eq('id', authUser.id)
           .maybeSingle();
-          
+
         const { data: userData, error: userError } = await Promise.race([profilePromise, timeoutPromise]);
 
         if (userError) {
@@ -618,7 +618,7 @@ export class SupabaseAuthService {
       // Retry a few times in case the trigger is still running
       let userData = null
       let userError = null
-      
+
       for (let attempt = 0; attempt < 5; attempt++) {
         const result = await supabase
           .from('users')
@@ -628,13 +628,13 @@ export class SupabaseAuthService {
           `)
           .eq('id', session.user.id)
           .maybeSingle()
-        
+
         userData = result.data
         userError = result.error
-        
+
         if (userData) break
         if (userError && userError.code !== 'PGRST116') break // PGRST116 = not found, which is OK to retry
-        
+
         // Wait before retrying (longer wait on later attempts)
         await new Promise(resolve => setTimeout(resolve, 500 * (attempt + 1)))
       }
@@ -647,18 +647,18 @@ export class SupabaseAuthService {
       if (!userData) {
         // Try to manually create the user profile as a fallback
         console.warn('User profile not found, attempting to create from auth metadata...')
-        
+
         const authUser = session.user
         const metadata = authUser.user_metadata || {}
-        
+
         // Extract name from Google OAuth metadata
-        const firstName = metadata.given_name || metadata.first_name || 
+        const firstName = metadata.given_name || metadata.first_name ||
           (metadata.name ? metadata.name.split(' ')[0] : 'User')
-        const lastName = metadata.family_name || metadata.last_name || 
-          (metadata.name && metadata.name.split(' ').length > 1 
-            ? metadata.name.substring(firstName.length + 1) 
+        const lastName = metadata.family_name || metadata.last_name ||
+          (metadata.name && metadata.name.split(' ').length > 1
+            ? metadata.name.substring(firstName.length + 1)
             : '')
-        
+
         // Try to upsert the user profile (database trigger might have already created it)
         // Use upsert to handle race conditions gracefully
         const upsertResult = await supabase
@@ -679,7 +679,7 @@ export class SupabaseAuthService {
             vendor:vendor(id, shopname, status)
           `)
           .single()
-        
+
         if (upsertResult.error) {
           // If upsert fails, try fetching again (trigger might have created it)
           console.warn('Upsert failed, trying to fetch existing user:', upsertResult.error.message);
@@ -691,7 +691,7 @@ export class SupabaseAuthService {
             `)
             .eq('id', authUser.id)
             .maybeSingle();
-          
+
           if (retryResult.data) {
             userData = retryResult.data;
           } else {
@@ -724,7 +724,7 @@ export class SupabaseAuthService {
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
         redirectTo: `${window.location.origin}/reset-password`
       })
-      
+
       if (error) {
         throw error
       }

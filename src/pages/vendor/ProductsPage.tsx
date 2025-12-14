@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useSupabaseAuth } from "@/contexts/SupabaseAuthContext";
+import { supabase } from '@/lib/supabase';
 import { api } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -27,10 +28,15 @@ import { toast } from 'sonner';
 interface Product {
   id: string;
   name: string;
+  product_name?: string; // Support for new schema column
   category: string;
+  category_id?: string; // Support for new schema column
   price: number;
+  price_cdf?: number; // Support for new schema column
   stock: number;
+  stock_quantity?: number; // Support for new schema column
   sku: string;
+  sku_code?: string; // Support for new schema column
   description: string;
   isActive: boolean;
   rating: number;
@@ -153,13 +159,27 @@ const ProductsPage = () => {
     };
 
     try {
+      const productPayload = {
+        product_name: form.name,
+        category_id: form.category,
+        price_cdf: parseFloat(form.price),
+        stock_quantity: parseInt(form.stock),
+        sku_code: form.sku,
+        description: form.description
+      };
+
+      if (isNaN(productPayload.price_cdf) || isNaN(productPayload.stock_quantity)) {
+        toast.error('Price and Stock must be valid numbers');
+        return;
+      }
+
       if (editingProduct) {
         // Update existing product
-        await api.put(`/vendor/${user.id}/products/${editingProduct.id}`, productData);
+        await api.put(`/vendor/${user.id}/products/${editingProduct.id}`, productPayload);
         toast.success('Product updated successfully');
       } else {
-        // Add new product
-        await api.post(`/vendor/${user.id}/products`, productData);
+        // Add new product via Backend API
+        await api.post(`/vendor/${user.id}/products`, productPayload);
         toast.success('Product added successfully');
       }
 
@@ -263,10 +283,10 @@ const ProductsPage = () => {
                     </div>
                     <div>
                       <CardTitle className="text-lg font-serif text-[#4e342e]">
-                        {product.name}
+                        {product.name || product.product_name || 'Unnamed Product'}
                       </CardTitle>
                       <Badge variant="secondary" className="bg-[#fdf6f0] text-[#4e342e] text-xs mt-1">
-                        {getCategoryLabel(product.category)}
+                        {getCategoryLabel(product.category || product.category_id || '')}
                       </Badge>
                     </div>
                   </div>

@@ -2,6 +2,7 @@ import React, { createContext, useContext, useEffect, useState, useCallback } fr
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 import { supabaseAuth, User, RegisterData, mapSupabaseAuthError, delay } from "@/lib/supabaseAuth";
+import { api } from "@/lib/api";
 import { supabase } from "@/lib/supabase";
 import { mockAuth } from "@/lib/mockAuth";
 import { supabaseConfig } from "@/config/supabase";
@@ -107,26 +108,32 @@ export const SupabaseAuthProvider = ({ children }: { children: React.ReactNode }
   const authService = supabaseConfig.isConfigured ? supabaseAuth : mockAuth;
 
   // Fetch vendor data for vendor users
+  // Fetch vendor data for vendor users
   const fetchVendorData = async (userId: string) => {
     try {
-      const response = await fetch(getApiUrl(`/auth/vendor-status/${userId}`));
-      if (!response.ok) {
+      // Use the profile endpoint to get the full vendor object including the REAL vendor ID
+      // backend route: /api/vendor/:userId/profile
+      const response = await api.get<any>(`/vendor/${userId}/profile`);
+
+      if (!response.data) {
         setVendor(null);
         return;
       }
 
-      const data = await response.json();
-      if (!data?.success) {
-        setVendor(null);
-        return;
-      }
+      const vendorData = response.data;
 
       setVendor({
-        id: userId,
-        shopName: data.shopName || '',
-        status: data.status,
-        emailVerified: data.emailVerified,
-        rejectionReason: data.rejectionReason || null
+        id: vendorData.id, // This is the VENDOR table ID (UUID or Int), DIFFERENT from user.id
+        shopName: vendorData.shopname || vendorData.shopName || '',
+        status: vendorData.status,
+        emailVerified: vendorData.email_verified || vendorData.emailVerified,
+        rejectionReason: vendorData.rejection_reason || vendorData.rejectionReason || null,
+        // Map other fields if needed for context
+        address: vendorData.address,
+        city: vendorData.city,
+        state: vendorData.state,
+        zipCode: vendorData.zip_code || vendorData.zipCode,
+        description: vendorData.description
       });
     } catch (error) {
       console.error('Error fetching vendor data:', error);
@@ -454,28 +461,13 @@ export const SupabaseAuthProvider = ({ children }: { children: React.ReactNode }
       const userRole = authUser.user_metadata?.role || 'CUSTOMER';
 
       if (userRole === 'VENDOR') {
-        const statusResponse = await fetch(getApiUrl(`/auth/vendor-status/${authUser.id}`));
-        if (!statusResponse.ok) {
-          await supabase.auth.signOut();
-          throw new Error('We could not find a vendor profile linked to this account.');
+        try {
+          // Use shared function to get correct vendor ID
+          await fetchVendorData(authUser.id);
+        } catch (e) {
+          console.warn('Failed to fetch vendor data during login:', e);
+          setVendor(null);
         }
-
-        const statusData = await statusResponse.json();
-        if (statusData.success && statusData.status !== 'APPROVED') {
-          await supabase.auth.signOut();
-          const message = statusData.status === 'REJECTED'
-            ? statusData.rejectionReason || 'Your vendor application has been rejected. Please contact support for more details.'
-            : 'Your vendor account is pending manager approval.';
-          throw new Error(message);
-        }
-
-        setVendor({
-          id: authUser.id,
-          shopName: statusData.shopName || '',
-          status: statusData.status,
-          emailVerified: statusData.emailVerified,
-          rejectionReason: statusData.rejectionReason || null,
-        });
       } else {
         setVendor(null);
       }
