@@ -85,16 +85,20 @@ const EmployeesPage = () => {
         return;
       }
 
-      const response = await api.get<{ employees: Employee[] }>(`/vendor/${user.id}/employees`);
-      const data = response.data;
+      console.log(`Fetching employees for user: ${user.id}`);
+      const response = await api.get<Employee[]>(`/vendor/${user.id}/employees`);
 
-      if (data.employees) {
-        setEmployees(data.employees);
-        console.log(`✅ Loaded ${data.employees.length} employees from database`);
+      // Backend returns array directly
+      if (Array.isArray(response.data)) {
+        setEmployees(response.data);
+        console.log(`✅ Loaded ${response.data.length} employees`);
+      } else {
+        setEmployees([]);
       }
     } catch (error) {
       console.error('Error loading employees:', error);
       toast.error('Failed to load employees');
+      setEmployees([]);
     } finally {
       setLoading(false);
     }
