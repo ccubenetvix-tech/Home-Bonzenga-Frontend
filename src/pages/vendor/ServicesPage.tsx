@@ -1,263 +1,196 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useSupabaseAuth } from "@/contexts/SupabaseAuthContext";
+import { api } from '@/lib/api';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { motion } from 'framer-motion';
 import DashboardLayout from '@/components/DashboardLayout';
 import {
-  Plus,
-  Edit,
-  Trash2,
-  Clock,
-  DollarSign,
-  Scissors,
-  Palette,
-  Sparkles,
-  Award,
-  Image as ImageIcon
+    Plus,
+    Edit,
+    Trash2,
+    Clock,
+    DollarSign,
+    AlertCircle,
+    CheckCircle,
+    Scissors
 } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface Service {
-  id: string;
-  name: string;
-  description: string;
-  price: number;
-  duration: number;
-  category: string;
-  isActive: boolean;
-  image?: string;
-  tags?: string[];
-  genderPreference?: string;
-  createdAt: string;
-  updatedAt: string;
+    id: string;
+    name: string;
+    category: string;
+    category_id?: string;
+    price: number;
+    duration: number;
+    description: string;
+    isActive: boolean;
+    imageUrl?: string;
+    image_url?: string;
 }
 
 const ServicesPage = () => {
-  const { user } = useSupabaseAuth();
-  const navigate = useNavigate();
-  const [services, setServices] = useState<Service[]>([]);
-  const [loading, setLoading] = useState(true);
+    const { t } = useTranslation();
+    const { user } = useSupabaseAuth();
+    const navigate = useNavigate();
+    const [services, setServices] = useState<Service[]>([]);
+    const [loading, setLoading] = useState(true);
 
-  const categoryOptions = [
-    { value: 'hair', label: 'Hair Care', icon: Scissors },
-    { value: 'face', label: 'Face Care', icon: Palette },
-    { value: 'nail', label: 'Nail Care', icon: Sparkles },
-    { value: 'spa', label: 'Spa & Wellness', icon: Award },
-    { value: 'makeup', label: 'Makeup', icon: Palette }
-  ];
-
-  useEffect(() => {
-    fetchServices();
-  }, [user?.id]);
-
-  const fetchServices = async () => {
-    try {
-      setLoading(true);
-      const token = localStorage.getItem('token');
-      // Using the public endpoint might be easier if it returns everything, 
-      // but let's stick to the vendor specific one to ensure we get inactive ones too if needed
-      // Actually /api/vendor/:id/services returns everything for that vendor
-      const response = await fetch(`http://localhost:3001/api/vendor/${user?.id}/services`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        setServices(data.services || []);
-      }
-    } catch (error) {
-      console.error('Error fetching services:', error);
-      toast.error('Failed to load services');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleDelete = async (serviceId: string) => {
-    if (!confirm('Are you sure you want to delete this service?')) return;
-
-    try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:3001/api/vendor/${user?.id}/services/${serviceId}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-
-      if (response.ok) {
-        toast.success('Service deleted successfully!');
+    useEffect(() => {
         fetchServices();
-      } else {
-        toast.error('Failed to delete service');
-      }
-    } catch (error) {
-      console.error('Error deleting service:', error);
-      toast.error('Failed to delete service');
+    }, [user]);
+
+    const fetchServices = async () => {
+        try {
+            setLoading(true);
+            if (!user?.id) return;
+
+            const response = await api.get<{ services: Service[] }>(`/vendor/${user.id}/services`);
+            if (response.data.services) {
+                setServices(response.data.services);
+            }
+        } catch (error) {
+            console.error('Error loading services:', error);
+            toast.error('Failed to load services');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleDeleteService = async (serviceId: string) => {
+        if (!window.confirm('Are you sure you want to delete this service?')) return;
+
+        try {
+            if (!user?.id) return;
+            await api.delete(`/vendor/${user.id}/services/${serviceId}`);
+            toast.success('Service deleted');
+            fetchServices();
+        } catch (error) {
+            console.error('Error deleting service:', error);
+            toast.error('Failed to delete service');
+        }
+    };
+
+    const getCategoryImage = (category: string) => {
+        // Return placeholder or specific image based on category
+        // For now, returning null to fall back to service image
+        return null;
+    };
+
+    if (loading) {
+        return (
+            <DashboardLayout>
+                <div className="min-h-screen flex items-center justify-center">
+                    <div className="text-[#4e342e]">Loading services...</div>
+                </div>
+            </DashboardLayout>
+        );
     }
-  };
 
-  const getCategoryIcon = (category: string) => {
-    // Basic normalization
-    const normalized = (category || '').toLowerCase();
-    const categoryData = categoryOptions.find(cat => normalized.includes(cat.value));
-    return categoryData?.icon || Sparkles;
-  };
+    return (
+        <DashboardLayout>
+            <div className="container mx-auto py-8 px-4">
+                <div className="flex justify-between items-center mb-8">
+                    <div>
+                        <h1 className="text-3xl font-serif font-bold text-[#4e342e] mb-2">My Services</h1>
+                        <p className="text-[#6d4c41]">Manage your service offerings</p>
+                    </div>
+                    <Button
+                        onClick={() => navigate('/vendor/services/add')}
+                        className="bg-[#4e342e] hover:bg-[#3b2c26] text-white"
+                    >
+                        <Plus className="w-4 h-4 mr-2" />
+                        Add New Service
+                    </Button>
+                </div>
 
-  const getCategoryLabel = (category: string) => {
-    // Just return the raw category name if it doesn't match predefined ones, nicely capitalized
-    const normalized = (category || '').toLowerCase();
-    const categoryData = categoryOptions.find(cat => normalized.includes(cat.value));
-    return categoryData?.label || category || 'Other';
-  };
-
-  const fadeInUp = {
-    initial: { opacity: 0, y: 60 },
-    animate: { opacity: 1, y: 0 },
-    transition: { duration: 0.6 }
-  };
-
-  return (
-    <DashboardLayout>
-      <div className="container mx-auto px-4 py-8">
-        <motion.div {...fadeInUp}>
-          {/* Header */}
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8">
-            <div>
-              <h1 className="text-3xl font-serif font-bold text-[#4e342e] mb-2">Services Management</h1>
-              <p className="text-[#6d4c41]">Manage your salon services and pricing</p>
-            </div>
-            <Button
-              onClick={() => navigate('/vendor/services/add')}
-              className="bg-[#4e342e] hover:bg-[#3b2c26] text-white"
-            >
-              <Plus className="w-4 h-4 mr-2" />
-              Add Service
-            </Button>
-          </div>
-
-          {/* Services Grid */}
-          {loading ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {[1, 2, 3].map((i) => (
-                <Card key={i} className="border-0 bg-white shadow-lg animate-pulse">
-                  <CardContent className="p-6">
-                    <div className="h-4 bg-gray-200 rounded mb-2"></div>
-                    <div className="h-3 bg-gray-200 rounded mb-4"></div>
-                    <div className="h-3 bg-gray-200 rounded w-2/3"></div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          ) : services.length === 0 ? (
-            <Card className="border-0 bg-white shadow-lg">
-              <CardContent className="p-12 text-center">
-                <Sparkles className="w-16 h-16 text-[#6d4c41]/50 mx-auto mb-4" />
-                <h3 className="text-xl font-semibold text-[#4e342e] mb-2">No Services Yet</h3>
-                <p className="text-[#6d4c41] mb-6">Start by adding your first service to begin accepting bookings.</p>
-                <Button
-                  onClick={() => navigate('/vendor/services/add')}
-                  className="bg-[#4e342e] hover:bg-[#3b2c26] text-white"
-                >
-                  <Plus className="w-4 h-4 mr-2" />
-                  Add Your First Service
-                </Button>
-              </CardContent>
-            </Card>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {services.map((service, index) => {
-                const CategoryIcon = getCategoryIcon(service.category);
-                return (
-                  <motion.div
-                    key={service.id}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.5, delay: index * 0.1 }}
-                  >
-                    <Card className="border-0 bg-white shadow-lg hover:shadow-xl transition-all duration-300 h-full flex flex-col overflow-hidden group">
-                      {/* Image Thumbnail */}
-                      <div className="relative h-48 bg-gray-100 overflow-hidden">
-                        {service.image ? (
-                          <img
-                            src={service.image}
-                            alt={service.name}
-                            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                          />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center bg-[#fdf6f0]">
-                            <ImageIcon className="w-12 h-12 text-[#d7ccc8]" />
-                          </div>
-                        )}
-                        <div className="absolute top-2 right-2">
-                          <Badge className={service.isActive ? 'bg-green-500 hover:bg-green-600' : 'bg-gray-500 hover:bg-gray-600'}>
-                            {service.isActive ? 'Active' : 'Inactive'}
-                          </Badge>
-                        </div>
-                      </div>
-
-                      <CardHeader className="pb-2">
-                        <div className="flex items-start justify-between">
-                          <div className="flex items-center space-x-2">
-                            <div className="p-1.5 bg-[#fdf6f0] rounded-md">
-                              <CategoryIcon className="w-4 h-4 text-[#4e342e]" />
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {services.map((service) => (
+                        <Card key={service.id} className="overflow-hidden hover:shadow-lg transition-shadow border-0 shadow-md">
+                            <div className="h-48 overflow-hidden bg-gray-100 relative">
+                                {service.imageUrl || service.image_url ? (
+                                    <img
+                                        src={service.imageUrl || service.image_url}
+                                        alt={service.name}
+                                        className="w-full h-full object-cover"
+                                    />
+                                ) : (
+                                    <div className="w-full h-full flex items-center justify-center bg-[#fdf6f0]">
+                                        <Scissors className="w-12 h-12 text-[#4e342e] opacity-20" />
+                                    </div>
+                                )}
+                                <Badge
+                                    className={`absolute top-3 right-3 ${service.isActive ? 'bg-green-500' : 'bg-gray-500'}`}
+                                >
+                                    {service.isActive ? 'Active' : 'Inactive'}
+                                </Badge>
                             </div>
-                            <Badge variant="outline" className="text-xs font-normal border-[#d7ccc8] text-[#6d4c41]">
-                              {getCategoryLabel(service.category)}
-                            </Badge>
-                          </div>
-                        </div>
-                        <CardTitle className="text-lg text-[#4e342e] mt-2 line-clamp-1">{service.name}</CardTitle>
-                      </CardHeader>
-                      <CardContent className="flex-1 flex flex-col justify-between">
-                        <p className="text-[#6d4c41] text-sm mb-4 line-clamp-2">{service.description}</p>
 
-                        <div>
-                          <div className="flex items-center justify-between text-sm mb-4">
-                            <div className="flex items-center space-x-1 text-[#4e342e] font-semibold">
-                              <DollarSign className="w-4 h-4" />
-                              <span>{service.price}</span>
-                            </div>
-                            <div className="flex items-center space-x-1 text-[#6d4c41]">
-                              <Clock className="w-4 h-4" />
-                              <span>{service.duration} min</span>
-                            </div>
-                          </div>
+                            <CardContent className="p-4">
+                                <div className="flex justify-between items-start mb-2">
+                                    <div>
+                                        <h3 className="font-serif font-bold text-lg text-[#4e342e]">{service.name}</h3>
+                                        <p className="text-sm text-[#6d4c41]">{service.category}</p>
+                                    </div>
+                                    <div className="font-semibold text-[#4e342e]">
+                                        CD {service.price.toLocaleString()}
+                                    </div>
+                                </div>
 
-                          <div className="flex space-x-2 pt-2 border-t border-[#fdf6f0]">
+                                <p className="text-sm text-gray-500 mb-4 line-clamp-2 min-h-[40px]">
+                                    {service.description || 'No description provided.'}
+                                </p>
+
+                                <div className="flex items-center gap-2 text-sm text-[#6d4c41] mb-4">
+                                    <Clock className="w-4 h-4" />
+                                    <span>{service.duration} mins</span>
+                                </div>
+
+                                <div className="flex justify-end gap-2 pt-2 border-t border-gray-100">
+                                    <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => navigate(`/vendor/services/edit/${service.id}`)}
+                                        className="text-[#4e342e] hover:text-[#3b2c26] hover:bg-[#fdf6f0]"
+                                    >
+                                        <Edit className="w-4 h-4 mr-1" />
+                                        Edit
+                                    </Button>
+                                    <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => handleDeleteService(service.id)}
+                                        className="text-red-500 hover:text-red-600 hover:bg-red-50"
+                                    >
+                                        <Trash2 className="w-4 h-4 mr-1" />
+                                        Delete
+                                    </Button>
+                                </div>
+                            </CardContent>
+                        </Card>
+                    ))}
+
+                    {services.length === 0 && (
+                        <div className="col-span-full text-center py-12 bg-white rounded-lg border border-dashed border-[#4e342e]">
+                            <Scissors className="w-12 h-12 text-[#4e342e] mx-auto mb-4 opacity-50" />
+                            <h3 className="text-lg font-medium text-[#4e342e] mb-2">No services yet</h3>
+                            <p className="text-[#6d4c41] mb-4">Start by adding your first service</p>
                             <Button
-                              variant="outline"
-                              className="flex-1 border-[#4e342e] text-[#4e342e] hover:bg-[#4e342e] hover:text-white"
-                              onClick={() => navigate(`/vendor/services/edit/${service.id}`)}
+                                onClick={() => navigate('/vendor/services/add')}
+                                variant="outline"
+                                className="border-[#4e342e] text-[#4e342e]"
                             >
-                              <Edit className="w-3 h-3 mr-2" />
-                              Edit
+                                Add Service
                             </Button>
-                            <Button
-                              variant="ghost"
-                              className="text-red-500 hover:bg-red-50 hover:text-red-600"
-                              onClick={() => handleDelete(service.id)}
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </Button>
-                          </div>
                         </div>
-                      </CardContent>
-                    </Card>
-                  </motion.div>
-                );
-              })}
+                    )}
+                </div>
             </div>
-          )}
-        </motion.div>
-      </div>
-    </DashboardLayout>
-  );
+        </DashboardLayout>
+    );
 };
 
 export default ServicesPage;

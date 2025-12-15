@@ -1,141 +1,135 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { supabase } from "@/lib/supabase";
+import { useTranslation } from 'react-i18next';
 import { useSupabaseAuth } from "@/contexts/SupabaseAuthContext";
+import { api } from '@/lib/api';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { CategoryDropdown } from '@/components/CategoryDropdown';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import DashboardLayout from '@/components/DashboardLayout';
+import { Image as ImageIcon, Trash2, ArrowLeft, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
-import { Loader2, ArrowLeft, Upload, X } from 'lucide-react';
 
-interface Category {
-    id: string;
+interface ServiceForm {
     name: string;
+    category: string;
+    price: string;
+    duration: string;
+    description: string;
+    image: File | null;
+    imagePreview: string | null;
+    gender: string;
 }
 
 const AddServicePage = () => {
-    const navigate = useNavigate();
+    const { t } = useTranslation();
     const { user } = useSupabaseAuth();
+    const navigate = useNavigate();
     const [loading, setLoading] = useState(false);
-    const [categories, setCategories] = useState<Category[]>([]);
 
-    const [formData, setFormData] = useState({
+    const [form, setForm] = useState<ServiceForm>({
         name: '',
-        description: '',
+        category: '',
         price: '',
         duration: '60',
-        categoryId: '',
-        tags: '', // Comma separated
-        genderPreference: 'UNISEX'
+        description: '',
+        image: null,
+        imagePreview: null,
+        gender: 'unisex'
     });
 
-    const [imageFile, setImageFile] = useState<File | null>(null);
-    const [imagePreview, setImagePreview] = useState<string | null>(null);
+    const categories = [
+        { value: 'hair_styling', label: 'Hair Styling' },
+        { value: 'hair_coloring', label: 'Hair Coloring' },
+        { value: 'skincare', label: 'Skincare' },
+        { value: 'makeup', label: 'Makeup' },
+        { value: 'nails', label: 'Nails' },
+        { value: 'spa', label: 'Spa & Massage' },
+        { value: 'barber', label: 'Barbering' }
+    ];
 
-    useEffect(() => {
-        fetchCategories();
-    }, []);
-
-    const fetchCategories = async () => {
-        try {
-            const response = await fetch('http://localhost:3001/api/vendor/categories');
-            if (response.ok) {
-                const data = await response.json();
-                setCategories(data.categories || []);
-            }
-        } catch (error) {
-            console.error('Error fetching categories:', error);
-            toast.error('Failed to load categories');
-        }
+    const handleInputChange = (field: keyof ServiceForm, value: string) => {
+        setForm(prev => ({ ...prev, [field]: value }));
     };
 
     const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (file) {
-            setImageFile(file);
-            const objectUrl = URL.createObjectURL(file);
-            setImagePreview(objectUrl);
+            if (file.size > 10 * 1024 * 1024) { // 10MB limit
+                toast.error('Image size must be less than 10MB');
+                return;
+            }
+
+            const allowedTypes = ['image/png', 'image/jpeg', 'image/webp'];
+            if (!allowedTypes.includes(file.type)) {
+                toast.error('Only PNG, JPEG, and WebP images are allowed');
+                return;
+            }
+
+            setForm(prev => ({
+                ...prev,
+                image: file,
+                imagePreview: URL.createObjectURL(file)
+            }));
         }
-    };
-
-    const removeImage = () => {
-        setImageFile(null);
-        if (imagePreview) URL.revokeObjectURL(imagePreview);
-        setImagePreview(null);
-    };
-
-    const uploadImage = async (file: File): Promise<string> => {
-        const fileExt = file.name.split('.').pop();
-        const fileName = `${user?.id}/${Math.random().toString(36).substring(2)}.${fileExt}`;
-        const filePath = `service-images/${fileName}`; // Changed to service-images folder in vendor-services bucket if desired, or simplified
-
-        // Use vendor-services bucket as per plan
-        const { error: uploadError } = await supabase.storage
-            .from('vendor-services')
-            .upload(filePath, file);
-
-        if (uploadError) {
-            throw uploadError;
-        }
-
-        const { data } = supabase.storage
-            .from('vendor-services')
-            .getPublicUrl(filePath);
-
-        return data.publicUrl;
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        setLoading(true);
+
+        if (!form.name || !form.category || !form.price || !form.duration) {
+            toast.error('Please fill in all required fields');
+            return;
+        }
+
+        if (!form.image) {
+            toast.error('Please upload a service image');
+            return;
+        }
+
+        if (!user?.id) {
+            toast.error('User not authenticated');
+            return;
+        }
 
         try {
-            if (!user?.id) throw new Error('Not authenticated');
-            if (!formData.categoryId) throw new Error('Please select a category');
-            if (!imageFile) throw new Error('Service image is required');
+            setLoading(true);
 
-            // 1. Upload Image
-            const imageUrl = await uploadImage(imageFile);
+            const formData = new FormData();
+            formData.append('name', form.name);
+            formData.append('category', form.category); // Sending category name/value
+            formData.append('price', form.price);
+            formData.append('duration', form.duration);
+            formData.append('description', form.description);
+            formData.append('gender_preferences', form.gender);
 
-            // 2. Prepare Payload
-            const payload = {
-                name: formData.name,
-                description: formData.description,
-                price: parseFloat(formData.price),
-                duration: parseInt(formData.duration),
-                categoryId: formData.categoryId,
-                tags: formData.tags.split(',').map(t => t.trim()).filter(Boolean),
-                genderPreference: formData.genderPreference,
-                image: imageUrl
-            };
-
-            // 3. Send to API
-            const token = localStorage.getItem('token');
-            const response = await fetch(`http://localhost:3001/api/vendor/${user.id}/services`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                },
-                body: JSON.stringify(payload)
-            });
-
-            if (!response.ok) {
-                const data = await response.json();
-                throw new Error(data.message || 'Failed to create service');
+            if (form.image) {
+                formData.append('image', form.image);
             }
 
-            toast.success('Service created successfully!');
-            navigate('/vendor/services');
+            console.log('📤 Submitting Service...', Object.fromEntries(formData));
 
+            await api.post(`/vendor/${user.id}/services`, formData, {
+                headers: {
+                    'Content-Type': 'multipart/form-data',
+                },
+            });
+
+            toast.success('Service added successfully');
+            navigate('/vendor/services');
         } catch (error: any) {
             console.error('Error creating service:', error);
-            toast.error(error.message || 'Failed to create service');
+
+            let errorMessage = 'Failed to create service';
+            if (error.response?.data?.message) {
+                errorMessage = error.response.data.message;
+            } else if (error.response?.data?.error?.message) {
+                errorMessage = error.response.data.error.message;
+            }
+
+            toast.error(errorMessage);
         } finally {
             setLoading(false);
         }
@@ -143,165 +137,195 @@ const AddServicePage = () => {
 
     return (
         <DashboardLayout>
-            <div className="container mx-auto px-4 py-8">
-                <Button
-                    variant="ghost"
-                    onClick={() => navigate('/vendor/services')}
-                    className="mb-6 hover:bg-transparent pl-0 text-[#6d4c41] hover:text-[#4e342e]"
-                >
-                    <ArrowLeft className="w-4 h-4 mr-2" />
-                    Back to Services
-                </Button>
+            <div className="container mx-auto py-8 px-4 max-w-3xl">
+                <div className="mb-8 flex items-center gap-4">
+                    <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => navigate('/vendor/services')}
+                        className="text-[#4e342e]"
+                    >
+                        <ArrowLeft className="w-5 h-5" />
+                    </Button>
+                    <div>
+                        <h1 className="text-3xl font-serif font-bold text-[#4e342e]">
+                            Add New Service
+                        </h1>
+                        <p className="text-[#6d4c41]">
+                            Create a new service offering for your clients
+                        </p>
+                    </div>
+                </div>
 
-                <Card className="max-w-3xl mx-auto border-0 shadow-lg bg-white">
-                    <CardHeader>
-                        <CardTitle className="text-2xl font-serif text-[#4e342e]">Add New Service</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <form onSubmit={handleSubmit} className="space-y-6">
-
-                            {/* Image Upload */}
-                            <div className="space-y-2">
-                                <Label className="text-[#4e342e]">Service Image (Required)</Label>
-                                <div className="border-2 border-dashed border-gray-200 rounded-lg p-6 flex flex-col items-center justify-center min-h-[200px] relative bg-gray-50">
-                                    {imagePreview ? (
-                                        <div className="relative w-full h-full flex justify-center">
-                                            <img src={imagePreview} alt="Preview" className="max-h-[300px] object-cover rounded-md" />
-                                            <button
-                                                type="button"
-                                                onClick={removeImage}
-                                                className="absolute top-2 right-2 p-1 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors"
-                                            >
-                                                <X className="w-4 h-4" />
-                                            </button>
-                                        </div>
-                                    ) : (
-                                        <div className="text-center">
-                                            <Upload className="w-10 h-10 text-gray-400 mx-auto mb-2" />
-                                            <p className="text-sm text-gray-500 mb-2">Click to upload or drag and drop</p>
-                                            <p className="text-xs text-gray-400">JPG, PNG up to 5MB</p>
-                                            <Input
-                                                type="file"
-                                                accept="image/*"
-                                                onChange={handleImageChange}
-                                                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                                                required
-                                            />
-                                        </div>
-                                    )}
-                                </div>
-                            </div>
-
-                            {/* Basic Info */}
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                <div className="space-y-2">
-                                    <Label htmlFor="name" className="text-[#4e342e]">Service Name</Label>
-                                    <Input
-                                        id="name"
-                                        value={formData.name}
-                                        onChange={e => setFormData({ ...formData, name: e.target.value })}
-                                        placeholder="e.g. Luxury Haircut"
-                                        required
-                                    />
-                                </div>
-                                <div className="space-y-2">
-                                    <Label htmlFor="category" className="text-[#4e342e]">Category</Label>
-                                    <CategoryDropdown
-                                        categories={categories}
-                                        selectedId={formData.categoryId}
-                                        onSelect={(id) => setFormData({ ...formData, categoryId: id })}
-                                    />
-                                </div>
-                            </div>
-
-                            {/* Description */}
-                            <div className="space-y-2">
-                                <Label htmlFor="description" className="text-[#4e342e]">Description</Label>
-                                <Textarea
-                                    id="description"
-                                    value={formData.description}
-                                    onChange={e => setFormData({ ...formData, description: e.target.value })}
-                                    placeholder="Describe the service..."
-                                    rows={4}
-                                    required
+                <div className="bg-white rounded-lg shadow-lg p-6 border border-[#fdf6f0]">
+                    <form onSubmit={handleSubmit} className="space-y-6">
+                        {/* Basic Info */}
+                        <div className="space-y-4">
+                            <div>
+                                <Label htmlFor="name" className="text-[#4e342e] font-medium">
+                                    Service Name *
+                                </Label>
+                                <Input
+                                    id="name"
+                                    value={form.name}
+                                    onChange={(e) => handleInputChange('name', e.target.value)}
+                                    placeholder="e.g. Luxury Facial"
+                                    className="border-[#4e342e] text-[#4e342e] mt-2"
                                 />
                             </div>
 
-                            {/* Pricing & Time */}
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                <div className="space-y-2">
-                                    <Label htmlFor="price" className="text-[#4e342e]">Price ($)</Label>
-                                    <Input
-                                        id="price"
-                                        type="number"
-                                        value={formData.price}
-                                        onChange={e => setFormData({ ...formData, price: e.target.value })}
-                                        placeholder="0.00"
-                                        min="0"
-                                        step="0.01"
-                                        required
-                                    />
-                                </div>
-                                <div className="space-y-2">
-                                    <Label htmlFor="duration" className="text-[#4e342e]">Duration (minutes)</Label>
-                                    <Input
-                                        id="duration"
-                                        type="number"
-                                        value={formData.duration}
-                                        onChange={e => setFormData({ ...formData, duration: e.target.value })}
-                                        placeholder="60"
-                                        min="15"
-                                        step="15"
-                                        required
-                                    />
-                                </div>
-                            </div>
-
-                            {/* Additional Info */}
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                <div className="space-y-2">
-                                    <Label htmlFor="gender" className="text-[#4e342e]">Gender Preference</Label>
-                                    <Select
-                                        value={formData.genderPreference}
-                                        onValueChange={val => setFormData({ ...formData, genderPreference: val })}
-                                    >
-                                        <SelectTrigger>
-                                            <SelectValue />
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <Label htmlFor="category" className="text-[#4e342e] font-medium">
+                                        Category *
+                                    </Label>
+                                    <Select value={form.category} onValueChange={(value) => handleInputChange('category', value)}>
+                                        <SelectTrigger className="border-[#4e342e] text-[#4e342e] mt-2">
+                                            <SelectValue placeholder="Select category" />
                                         </SelectTrigger>
                                         <SelectContent>
-                                            <SelectItem value="UNISEX">Unisex</SelectItem>
-                                            <SelectItem value="MEN">Men Only</SelectItem>
-                                            <SelectItem value="WOMEN">Women Only</SelectItem>
+                                            {categories.map((category) => (
+                                                <SelectItem key={category.value} value={category.value}>
+                                                    {category.label}
+                                                </SelectItem>
+                                            ))}
                                         </SelectContent>
                                     </Select>
                                 </div>
-                                <div className="space-y-2">
-                                    <Label htmlFor="tags" className="text-[#4e342e]">Tags (Optional)</Label>
-                                    <Input
-                                        id="tags"
-                                        value={formData.tags}
-                                        onChange={e => setFormData({ ...formData, tags: e.target.value })}
-                                        placeholder="e.g. hair, styling, organic"
-                                    />
-                                    <p className="text-xs text-gray-500">Comma separated</p>
+
+                                <div>
+                                    <Label htmlFor="gender" className="text-[#4e342e] font-medium">
+                                        Gender Preference
+                                    </Label>
+                                    <Select value={form.gender} onValueChange={(value) => handleInputChange('gender', value)}>
+                                        <SelectTrigger className="border-[#4e342e] text-[#4e342e] mt-2">
+                                            <SelectValue placeholder="Select gender" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="unisex">Unisex</SelectItem>
+                                            <SelectItem value="female">Female Only</SelectItem>
+                                            <SelectItem value="male">Male Only</SelectItem>
+                                        </SelectContent>
+                                    </Select>
                                 </div>
                             </div>
 
-                            {/* Submit */}
-                            <div className="flex justify-end pt-4">
-                                <Button
-                                    type="submit"
-                                    disabled={loading}
-                                    className="bg-[#4e342e] hover:bg-[#3b2c26] text-white min-w-[150px]"
-                                >
-                                    {loading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
-                                    Create Service
-                                </Button>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <Label htmlFor="price" className="text-[#4e342e] font-medium">
+                                        Price (CDF) *
+                                    </Label>
+                                    <Input
+                                        id="price"
+                                        type="number"
+                                        value={form.price}
+                                        onChange={(e) => handleInputChange('price', e.target.value)}
+                                        placeholder="0"
+                                        className="border-[#4e342e] text-[#4e342e] mt-2"
+                                    />
+                                </div>
+
+                                <div>
+                                    <Label htmlFor="duration" className="text-[#4e342e] font-medium">
+                                        Duration (minutes) *
+                                    </Label>
+                                    <Input
+                                        id="duration"
+                                        type="number"
+                                        value={form.duration}
+                                        onChange={(e) => handleInputChange('duration', e.target.value)}
+                                        placeholder="60"
+                                        className="border-[#4e342e] text-[#4e342e] mt-2"
+                                    />
+                                </div>
                             </div>
 
-                        </form>
-                    </CardContent>
-                </Card>
+                            <div>
+                                <Label htmlFor="description" className="text-[#4e342e] font-medium">
+                                    Description
+                                </Label>
+                                <Textarea
+                                    id="description"
+                                    value={form.description}
+                                    onChange={(e) => handleInputChange('description', e.target.value)}
+                                    placeholder="Describe your service..."
+                                    className="border-[#4e342e] text-[#4e342e] mt-2"
+                                    rows={4}
+                                />
+                            </div>
+                        </div>
+
+                        {/* Image Upload */}
+                        <div>
+                            <Label htmlFor="image" className="text-[#4e342e] font-medium">
+                                Service Image *
+                            </Label>
+                            <div className="mt-2 flex items-center gap-4">
+                                {form.imagePreview ? (
+                                    <div className="relative w-32 h-32 rounded-lg overflow-hidden border border-[#4e342e]">
+                                        <img
+                                            src={form.imagePreview}
+                                            alt="Preview"
+                                            className="w-full h-full object-cover"
+                                        />
+                                        <Button
+                                            variant="destructive"
+                                            size="icon"
+                                            type="button"
+                                            className="absolute top-0 right-0 h-6 w-6 rounded-none rounded-bl-lg"
+                                            onClick={() => setForm(prev => ({ ...prev, image: null, imagePreview: null }))}
+                                        >
+                                            <Trash2 className="h-3 w-3" />
+                                        </Button>
+                                    </div>
+                                ) : (
+                                    <div className="w-32 h-32 rounded-lg border-2 border-dashed border-[#4e342e] flex items-center justify-center bg-[#fdf6f0]">
+                                        <ImageIcon className="h-10 w-10 text-[#4e342e] opacity-50" />
+                                    </div>
+                                )}
+                                <div className="flex-1">
+                                    <Input
+                                        id="image"
+                                        type="file"
+                                        accept="image/png, image/jpeg, image/webp"
+                                        onChange={handleImageChange}
+                                        className="border-[#4e342e] text-[#4e342e] file:text-[#4e342e]"
+                                    />
+                                    <p className="text-xs text-[#6d4c41] mt-1">
+                                        Max 10MB. PNG, JPEG, WebP, GIF allowed.
+                                        High quality images increase booking rates.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="flex justify-end pt-6">
+                            <Button
+                                type="button"
+                                variant="outline"
+                                onClick={() => navigate('/vendor/services')}
+                                className="mr-3 border-[#4e342e] text-[#4e342e] hover:bg-[#fdf6f0]"
+                                disabled={loading}
+                            >
+                                Cancel
+                            </Button>
+                            <Button
+                                type="submit"
+                                className="bg-[#4e342e] hover:bg-[#3b2c26] text-white"
+                                disabled={loading}
+                            >
+                                {loading ? (
+                                    <>
+                                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                        Creating Service...
+                                    </>
+                                ) : (
+                                    'Create Service'
+                                )}
+                            </Button>
+                        </div>
+                    </form>
+                </div>
             </div>
         </DashboardLayout>
     );
