@@ -176,6 +176,20 @@ export const adminApi = {
   },
 
   /**
+   * Get vendor employees
+   */
+  async getVendorEmployees(vendorId: string) {
+    return apiRequest<{ employees: any[] }>(`/admin/vendors/${vendorId}/employees`);
+  },
+
+  /**
+   * Get vendor products
+   */
+  async getVendorProducts(vendorId: string) {
+    return apiRequest<{ products: any[] }>(`/admin/vendors/${vendorId}/products`);
+  },
+
+  /**
    * Update service details
    */
   async updateService(serviceId: string, data: any) {

@@ -20,25 +20,11 @@ import {
     Sparkles,
     Award,
     Clock,
-    Image as ImageIcon,
-    Edit,
-    Trash2,
-    Power
+    Image as ImageIcon
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { adminApi } from '@/lib/adminApi';
 import { motion } from 'framer-motion';
-import {
-    AlertDialog,
-    AlertDialogAction,
-    AlertDialogCancel,
-    AlertDialogContent,
-    AlertDialogDescription,
-    AlertDialogFooter,
-    AlertDialogHeader,
-    AlertDialogTitle,
-    AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
 
 interface VendorDetails {
     id: string;
@@ -56,7 +42,7 @@ interface VendorDetails {
         email: string;
         phone: string | null;
     };
-    stats: {
+    stats?: {
         totalBookings: number;
         completedBookings: number;
         totalRevenue: number;
@@ -64,6 +50,7 @@ interface VendorDetails {
         totalProducts: number;
         totalEmployees: number;
     };
+    products?: Product[];
 }
 
 interface Service {
@@ -78,13 +65,25 @@ interface Service {
     createdAt: string;
 }
 
-const AdminVendorDetailsPage = () => {
+interface Product {
+    id: string;
+    name: string;
+    category: string;
+    price: number;
+    stock: number;
+    isActive: boolean;
+    description: string | null;
+    image_url?: string;
+}
+
+const VendorDetailsPage = () => {
     const { vendorId } = useParams<{ vendorId: string }>();
     const navigate = useNavigate();
     const [vendor, setVendor] = useState<VendorDetails | null>(null);
     const [services, setServices] = useState<Service[]>([]);
+    const [products, setProducts] = useState<Product[]>([]);
+    const [employees, setEmployees] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
-    const [actionLoading, setActionLoading] = useState<string | null>(null);
 
     useEffect(() => {
         if (vendorId) {
@@ -95,14 +94,15 @@ const AdminVendorDetailsPage = () => {
     const fetchData = async (id: string) => {
         try {
             setLoading(true);
-            const [vendorRes, servicesRes] = await Promise.all([
+            const [vendorRes, servicesRes, employeesRes, productsRes] = await Promise.all([
                 adminApi.getVendorDetails(id),
-                adminApi.getVendorServices(id)
+                adminApi.getVendorServices(id),
+                adminApi.getVendorEmployees(id),
+                adminApi.getVendorProducts(id)
             ]);
 
             if (vendorRes.success && vendorRes.data) {
-                // Ensure the data structure matches existing one or API response
-                // The API returns { vendor: ... } structure inside data based on admin.ts
+                // Check if response data has a nested 'vendor' property (common in admin API)
                 const vendorData = vendorRes.data.vendor || vendorRes.data;
                 setVendor(vendorData);
             } else {
@@ -113,46 +113,20 @@ const AdminVendorDetailsPage = () => {
                 setServices(servicesRes.data?.services || []);
             }
 
+            if (employeesRes.success) {
+                setEmployees(employeesRes.data?.employees || []);
+            }
+
+            if (productsRes.success) {
+                setProducts(productsRes.data?.products || []);
+            }
+
         } catch (error: any) {
             console.error('Error fetching data:', error);
             toast.error('Failed to load vendor details');
             navigate('/admin/vendors');
         } finally {
             setLoading(false);
-        }
-    };
-
-    const handleServiceDelete = async (serviceId: string) => {
-        try {
-            setActionLoading(serviceId);
-            const res = await adminApi.deleteService(serviceId);
-            if (res.success) {
-                toast.success('Service deleted successfully');
-                setServices(services.filter(s => s.id !== serviceId));
-            } else {
-                toast.error(res.message || 'Failed to delete service');
-            }
-        } catch (error) {
-            toast.error('An error occurred');
-        } finally {
-            setActionLoading(null);
-        }
-    };
-
-    const handleServiceToggle = async (serviceId: string) => {
-        try {
-            setActionLoading(serviceId);
-            const res = await adminApi.toggleServiceStatus(serviceId);
-            if (res.success) {
-                toast.success('Service status updated');
-                if (vendorId) fetchData(vendorId); // Refresh to get updated status
-            } else {
-                toast.error(res.message || 'Failed to update service status');
-            }
-        } catch (error) {
-            toast.error('An error occurred');
-        } finally {
-            setActionLoading(null);
         }
     };
 
@@ -218,11 +192,11 @@ const AdminVendorDetailsPage = () => {
                                 </div>
                                 <div className="flex gap-4">
                                     <div className="text-center p-3 bg-[#fdf6f0] rounded-lg">
-                                        <div className="text-2xl font-bold text-[#4e342e]">{vendor.stats.totalServices}</div>
+                                        <div className="text-2xl font-bold text-[#4e342e]">{vendor.stats?.totalServices || 0}</div>
                                         <div className="text-xs text-[#6d4c41]">Services</div>
                                     </div>
                                     <div className="text-center p-3 bg-[#fdf6f0] rounded-lg">
-                                        <div className="text-2xl font-bold text-[#4e342e]">{vendor.stats.totalBookings}</div>
+                                        <div className="text-2xl font-bold text-[#4e342e]">{vendor.stats?.totalBookings || 0}</div>
                                         <div className="text-xs text-[#6d4c41]">Bookings</div>
                                     </div>
                                 </div>
@@ -311,9 +285,6 @@ const AdminVendorDetailsPage = () => {
                                                                 {service.isActive ? 'Active' : 'Inactive'}
                                                             </Badge>
                                                         </div>
-                                                        <div className="absolute bottom-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                            {/* Admin Actions Overlay */}
-                                                        </div>
                                                     </div>
 
                                                     <CardHeader className="pb-2">
@@ -331,7 +302,7 @@ const AdminVendorDetailsPage = () => {
                                                     <CardContent className="flex-1 flex flex-col justify-between">
                                                         <p className="text-[#6d4c41] text-sm mb-4 line-clamp-2">{service.description}</p>
 
-                                                        <div className="flex items-center justify-between pt-4 border-t border-[#f8d7da]/30 mb-4">
+                                                        <div className="flex items-center justify-between pt-4 border-t border-[#f8d7da]/30">
                                                             <div className="flex items-center text-[#4e342e] font-bold">
                                                                 <DollarSign className="w-4 h-4" />
                                                                 <span className="text-lg">{service.price}</span>
@@ -340,49 +311,6 @@ const AdminVendorDetailsPage = () => {
                                                                 <Clock className="w-4 h-4 mr-1" />
                                                                 <span>{service.duration} min</span>
                                                             </div>
-                                                        </div>
-
-                                                        {/* Admin Actions */}
-                                                        <div className="flex gap-2 justify-end">
-                                                            <Button
-                                                                size="sm"
-                                                                variant="outline"
-                                                                className="h-8 w-8 p-0 border-[#f8d7da] text-[#6d4c41]"
-                                                                onClick={() => handleServiceToggle(service.id)}
-                                                                disabled={actionLoading === service.id}
-                                                            >
-                                                                {actionLoading === service.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <Power className="h-4 w-4" />}
-                                                            </Button>
-
-                                                            <AlertDialog>
-                                                                <AlertDialogTrigger asChild>
-                                                                    <Button
-                                                                        size="sm"
-                                                                        variant="destructive"
-                                                                        className="h-8 w-8 p-0 bg-red-500/10 hover:bg-red-500/20 text-red-600 shadow-none border-0"
-                                                                        disabled={actionLoading === service.id}
-                                                                    >
-                                                                        <Trash2 className="h-4 w-4" />
-                                                                    </Button>
-                                                                </AlertDialogTrigger>
-                                                                <AlertDialogContent>
-                                                                    <AlertDialogHeader>
-                                                                        <AlertDialogTitle>Delete service?</AlertDialogTitle>
-                                                                        <AlertDialogDescription>
-                                                                            This action cannot be undone. This will permanently delete the service '{service.name}' from the database.
-                                                                        </AlertDialogDescription>
-                                                                    </AlertDialogHeader>
-                                                                    <AlertDialogFooter>
-                                                                        <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                                                        <AlertDialogAction
-                                                                            onClick={() => handleServiceDelete(service.id)}
-                                                                            className="bg-red-600 hover:bg-red-700 focus:ring-red-600"
-                                                                        >
-                                                                            Delete
-                                                                        </AlertDialogAction>
-                                                                    </AlertDialogFooter>
-                                                                </AlertDialogContent>
-                                                            </AlertDialog>
                                                         </div>
                                                     </CardContent>
                                                 </Card>
@@ -395,25 +323,107 @@ const AdminVendorDetailsPage = () => {
                     </TabsContent>
 
                     <TabsContent value="employees">
-                        <Card className="border-0 bg-white shadow-lg">
-                            <CardContent className="p-12 text-center">
-                                <Users className="w-16 h-16 text-[#6d4c41]/50 mx-auto mb-4" />
-                                <h3 className="text-xl font-semibold text-[#4e342e] mb-2">Employees Management</h3>
-                                <p className="text-[#6d4c41] mb-6">This feature is coming soon.</p>
-                            </CardContent>
-                        </Card>
+                        <div className="mb-8">
+                            <h2 className="text-2xl font-serif font-bold text-[#4e342e] mb-6">Employees</h2>
+                            {employees.length === 0 ? (
+                                <Card className="border-0 bg-white shadow-lg">
+                                    <CardContent className="p-12 text-center">
+                                        <Users className="w-16 h-16 text-[#6d4c41]/50 mx-auto mb-4" />
+                                        <h3 className="text-xl font-semibold text-[#4e342e] mb-2">No employees found</h3>
+                                        <p className="text-[#6d4c41]">This vendor has not added any employees yet.</p>
+                                    </CardContent>
+                                </Card>
+                            ) : (
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                    {employees.map((employee, index) => (
+                                        <motion.div
+                                            key={employee.id}
+                                            initial={{ opacity: 0, y: 20 }}
+                                            animate={{ opacity: 1, y: 0 }}
+                                            transition={{ duration: 0.5, delay: index * 0.1 }}
+                                        >
+                                            <Card className="border-0 bg-white shadow-lg hover:shadow-xl transition-all duration-300">
+                                                <CardHeader className="pb-2">
+                                                    <div className="flex items-center space-x-4">
+                                                        <div className="w-12 h-12 bg-[#4e342e] rounded-full flex items-center justify-center text-white font-bold text-lg">
+                                                            {employee.name ? employee.name.charAt(0).toUpperCase() : 'U'}
+                                                        </div>
+                                                        <div>
+                                                            <CardTitle className="text-lg text-[#4e342e]">{employee.name}</CardTitle>
+                                                            <p className="text-sm text-[#6d4c41]">{employee.role || 'Staff'}</p>
+                                                        </div>
+                                                    </div>
+                                                </CardHeader>
+                                                <CardContent>
+                                                    <div className="flex items-center justify-between mt-2">
+                                                        <Badge className={employee.is_active ? 'bg-green-500' : 'bg-gray-500'}>
+                                                            {employee.is_active ? 'Active' : 'Inactive'}
+                                                        </Badge>
+                                                    </div>
+                                                </CardContent>
+                                            </Card>
+                                        </motion.div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
                     </TabsContent>
 
                     <TabsContent value="products">
-                        <Card className="border-0 bg-white shadow-lg">
-                            <CardContent className="p-12 text-center">
-                                <div className="w-16 h-16 bg-[#fdf6f0] rounded-full flex items-center justify-center mx-auto mb-4">
-                                    <Sparkles className="w-8 h-8 text-[#4e342e]" />
+                        <div className="mb-8">
+                            <h2 className="text-2xl font-serif font-bold text-[#4e342e] mb-6">Products Catalog</h2>
+                            {products.length === 0 ? (
+                                <Card className="border-0 bg-white shadow-lg">
+                                    <CardContent className="p-12 text-center">
+                                        <div className="w-16 h-16 bg-[#fdf6f0] rounded-full flex items-center justify-center mx-auto mb-4">
+                                            <Sparkles className="w-8 h-8 text-[#4e342e]" />
+                                        </div>
+                                        <h3 className="text-xl font-semibold text-[#4e342e] mb-2">No products found</h3>
+                                        <p className="text-[#6d4c41]">This vendor has not added any products yet.</p>
+                                    </CardContent>
+                                </Card>
+                            ) : (
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                    {products.map((product, index) => (
+                                        <motion.div
+                                            key={product.id}
+                                            initial={{ opacity: 0, y: 20 }}
+                                            animate={{ opacity: 1, y: 0 }}
+                                            transition={{ duration: 0.5, delay: index * 0.1 }}
+                                        >
+                                            <Card className="border-0 bg-white shadow-lg hover:shadow-xl transition-all duration-300 h-full flex flex-col overflow-hidden">
+                                                <CardHeader className="pb-2">
+                                                    <div className="flex items-center justify-between mb-2">
+                                                        <Badge variant="outline" className="border-[#4e342e] text-[#4e342e]">
+                                                            {product.category}
+                                                        </Badge>
+                                                        <Badge className={product.isActive ? 'bg-green-500' : 'bg-gray-500'}>
+                                                            {product.isActive ? 'Active' : 'Inactive'}
+                                                        </Badge>
+                                                    </div>
+                                                    <CardTitle className="text-lg text-[#4e342e] line-clamp-1">{product.name}</CardTitle>
+                                                </CardHeader>
+
+                                                <CardContent className="flex-1 flex flex-col justify-between">
+                                                    <p className="text-[#6d4c41] text-sm mb-4 line-clamp-2">{product.description || 'No description'}</p>
+
+                                                    <div className="flex items-center justify-between pt-4 border-t border-[#f8d7da]/30">
+                                                        <div className="flex items-center text-[#4e342e] font-bold">
+                                                            <DollarSign className="w-4 h-4" />
+                                                            <span className="text-lg">{formatCurrency(product.price)}</span>
+                                                        </div>
+                                                        <div className="flex items-center text-[#6d4c41] text-sm">
+                                                            <span className="font-semibold mr-1">Stock:</span>
+                                                            <span>{product.stock}</span>
+                                                        </div>
+                                                    </div>
+                                                </CardContent>
+                                            </Card>
+                                        </motion.div>
+                                    ))}
                                 </div>
-                                <h3 className="text-xl font-semibold text-[#4e342e] mb-2">Products Management</h3>
-                                <p className="text-[#6d4c41] mb-6">This feature is coming soon.</p>
-                            </CardContent>
-                        </Card>
+                            )}
+                        </div>
                     </TabsContent>
                 </Tabs>
             </div>
@@ -421,4 +431,4 @@ const AdminVendorDetailsPage = () => {
     );
 };
 
-export default AdminVendorDetailsPage;
+export default VendorDetailsPage;
