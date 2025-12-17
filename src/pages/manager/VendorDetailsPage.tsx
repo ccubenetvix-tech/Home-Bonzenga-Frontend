@@ -86,6 +86,7 @@ const VendorDetailsPage = () => {
     const [vendor, setVendor] = useState<VendorDetails | null>(null);
     const [services, setServices] = useState<Service[]>([]);
     const [products, setProducts] = useState<Product[]>([]);
+    const [employees, setEmployees] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
@@ -97,41 +98,46 @@ const VendorDetailsPage = () => {
     const fetchData = async (id: string) => {
         try {
             setLoading(true);
-            const [vendorRes, servicesRes] = await Promise.all([
-                managerApi.getVendorDetails(id),
-                managerApi.getVendorServices(id)
-            ]);
+            const response = await managerApi.getVendorDetails(id);
 
-            if (vendorRes.success && vendorRes.data) { // Check if data exists on the response object directly or inside data property depending on API structure. 
-                // Based on manager.ts: res.json({ success: true, vendors: ... }) or single object?
-                // getVendorDetails returns apiRequest result. 
-                // endpoint: router.get('/vendors/:id/details'...) returns res.json({...vendorDetails}) directly? No, checks manager.ts
-                // manager.ts sends JSON with fields directly? No, usually { success: true, data: ... } or just fields.
-                // Correct check: manager.ts line 751: const vendorDetails = { ... }; res.json(vendorDetails); 
-                // Wait, line 751 defines object, but response structure?
-                // Let's re-read manager.ts line 673...
-                // res.json(vendorDetails)  <-- directly returns the object.
-                // BUT apiRequest wraps response? 
-                // managerApi.ts: buildSuccessResponse wraps in { success: true, data: parsed.data }.
-                // So if manager.ts returns { id: '...', ... }, then client gets { success: true, data: { id: '...', ... } }.
-                // So vendorRes.data will be the vendor object.
-                setVendor(vendorRes.data);
-                if (vendorRes.data.products) {
-                    setProducts(vendorRes.data.products);
+            console.log('📦 Manager Vendor Details Response:', response);
+
+            if (response.success && response.data) {
+                // Backend returns: { success: true, vendor: {...} }
+                // managerApi wraps it: { success: true, data: { success: true, vendor: {...} } }
+                // So we need: response.data.vendor
+                const data = response.data;
+                let payload;
+                
+                if (data.vendor) {
+                    // Normal case: response.data.vendor exists
+                    payload = data.vendor;
+                } else if (data.success && data.vendor) {
+                    // Double-wrapped case
+                    payload = data.vendor;
+                } else {
+                    // Fallback: use data directly
+                    payload = data;
                 }
+                
+                console.log('📦 Extracted payload:', payload);
+                console.log('📦 Services:', payload.services, 'Type:', Array.isArray(payload.services));
+                console.log('📦 Products:', payload.products, 'Type:', Array.isArray(payload.products));
+                console.log('📦 Employees:', payload.employees, 'Type:', Array.isArray(payload.employees));
+                
+                setVendor(payload);
+                
+                const servicesList = Array.isArray(payload.services) ? payload.services : [];
+                const productsList = Array.isArray(payload.products) ? payload.products : [];
+                const employeesList = Array.isArray(payload.employees) ? payload.employees : [];
+                
+                console.log(`✅ Setting ${servicesList.length} services, ${productsList.length} products, ${employeesList.length} employees`);
+                
+                setServices(servicesList);
+                setProducts(productsList);
+                setEmployees(employeesList);
             } else {
-                throw new Error(vendorRes.message || 'Failed to fetch vendor details');
-            }
-
-            if (servicesRes.success) {
-                setServices(servicesRes.data?.services || []);
-                // manager.ts line ~1350: res.json({ success: true, services: [...] })
-                // So client gets { success: true, data: { success: true, services: [...] } } ??
-                // Let's check apiRequest again.
-                // If server returns { success: true, services: [...] }, parsed.data is that object.
-                // success.data = parsed.data.
-                // So servicesRes.data = { success: true, services: [...] }.
-                // So servicesRes.data.services is the array.
+                throw new Error(response.message || 'Failed to fetch vendor details');
             }
 
         } catch (error: any) {
@@ -205,11 +211,11 @@ const VendorDetailsPage = () => {
                                 </div>
                                 <div className="flex gap-4">
                                     <div className="text-center p-3 bg-[#fdf6f0] rounded-lg">
-                                        <div className="text-2xl font-bold text-[#4e342e]">{vendor.stats.totalServices}</div>
+                                        <div className="text-2xl font-bold text-[#4e342e]">{vendor?.stats?.totalServices ?? 0}</div>
                                         <div className="text-xs text-[#6d4c41]">Services</div>
                                     </div>
                                     <div className="text-center p-3 bg-[#fdf6f0] rounded-lg">
-                                        <div className="text-2xl font-bold text-[#4e342e]">{vendor.stats.totalBookings}</div>
+                                        <div className="text-2xl font-bold text-[#4e342e]">{vendor?.stats?.totalBookings ?? 0}</div>
                                         <div className="text-xs text-[#6d4c41]">Bookings</div>
                                     </div>
                                 </div>
@@ -218,15 +224,15 @@ const VendorDetailsPage = () => {
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 border-t border-[#f8d7da] pt-4">
                                 <div className="flex items-center gap-2 text-[#6d4c41]">
                                     <Users className="w-4 h-4" />
-                                    <span className="text-sm">{vendor.user.firstName} {vendor.user.lastName}</span>
+                                    <span className="text-sm">{vendor?.user?.firstName || ''} {vendor?.user?.lastName || ''}</span>
                                 </div>
                                 <div className="flex items-center gap-2 text-[#6d4c41]">
                                     <Mail className="w-4 h-4" />
-                                    <span className="text-sm">{vendor.user.email}</span>
+                                    <span className="text-sm">{vendor?.user?.email || ''}</span>
                                 </div>
                                 <div className="flex items-center gap-2 text-[#6d4c41]">
                                     <Phone className="w-4 h-4" />
-                                    <span className="text-sm">{vendor.user.phone || 'No phone'}</span>
+                                    <span className="text-sm">{vendor?.user?.phone || 'No phone'}</span>
                                 </div>
                             </div>
                         </div>
@@ -336,16 +342,50 @@ const VendorDetailsPage = () => {
                     </TabsContent>
 
                     <TabsContent value="employees">
-                        <Card className="border-0 bg-white shadow-lg">
-                            <CardContent className="p-12 text-center">
-                                <Users className="w-16 h-16 text-[#6d4c41]/50 mx-auto mb-4" />
-                                <h3 className="text-xl font-semibold text-[#4e342e] mb-2">Employees Management</h3>
-                                <p className="text-[#6d4c41] mb-6">This feature is coming soon. Managers will be able to view vendor employees here.</p>
-                                <Button variant="outline" className="border-[#4e342e] text-[#4e342e]" disabled>
-                                    Coming Soon
-                                </Button>
-                            </CardContent>
-                        </Card>
+                        <div className="mb-8">
+                            <h2 className="text-2xl font-serif font-bold text-[#4e342e] mb-6">Employees</h2>
+                            {employees.length === 0 ? (
+                                <Card className="border-0 bg-white shadow-lg">
+                                    <CardContent className="p-12 text-center">
+                                        <Users className="w-16 h-16 text-[#6d4c41]/50 mx-auto mb-4" />
+                                        <h3 className="text-xl font-semibold text-[#4e342e] mb-2">No employees found</h3>
+                                        <p className="text-[#6d4c41]">This vendor has not added any employees yet.</p>
+                                    </CardContent>
+                                </Card>
+                            ) : (
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                    {employees.map((employee, index) => (
+                                        <motion.div
+                                            key={employee.id}
+                                            initial={{ opacity: 0, y: 20 }}
+                                            animate={{ opacity: 1, y: 0 }}
+                                            transition={{ duration: 0.5, delay: index * 0.1 }}
+                                        >
+                                            <Card className="border-0 bg-white shadow-lg hover:shadow-xl transition-all duration-300">
+                                                <CardHeader className="pb-2">
+                                                    <div className="flex items-center space-x-4">
+                                                        <div className="w-12 h-12 bg-[#4e342e] rounded-full flex items-center justify-center text-white font-bold text-lg">
+                                                            {employee.name ? employee.name.charAt(0).toUpperCase() : 'U'}
+                                                        </div>
+                                                        <div>
+                                                            <CardTitle className="text-lg text-[#4e342e]">{employee.name || 'Unknown'}</CardTitle>
+                                                            <p className="text-sm text-[#6d4c41]">{employee.role || 'Staff'}</p>
+                                                        </div>
+                                                    </div>
+                                                </CardHeader>
+                                                <CardContent>
+                                                    <div className="flex items-center justify-between mt-2">
+                                                        <Badge className={employee.status === 'ACTIVE' || employee.isActive ? 'bg-green-500' : 'bg-gray-500'}>
+                                                            {employee.status === 'ACTIVE' || employee.isActive ? 'Active' : 'Inactive'}
+                                                        </Badge>
+                                                    </div>
+                                                </CardContent>
+                                            </Card>
+                                        </motion.div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
                     </TabsContent>
 
                     <TabsContent value="products">

@@ -46,6 +46,7 @@ interface AtHomeBooking {
     zipCode: string;
   };
   items: Array<{
+    id: string;
     service: {
       name: string;
       price: number;
@@ -143,8 +144,6 @@ const AtHomeAppointmentsPage = () => {
             id,
             quantity,
             price,
-            name,
-            description,
             catalog_service:service_catalog (
               id,
               name,
@@ -190,6 +189,7 @@ const AtHomeAppointmentsPage = () => {
           zipCode: b.address.zip_code || ''
         } : { street: '-', city: '-', state: '-', zipCode: '-' },
         items: (b.items || []).map((it: any) => ({
+          id: it.id,
           service: {
             name: it.catalog_service?.name || it.name || 'Service',
             price: Number(it.catalog_service?.customer_price || it.price || 0)
@@ -222,7 +222,7 @@ const AtHomeAppointmentsPage = () => {
       console.log('📡 Fetching vendors for assignment...');
 
       const { data, error } = await supabase
-        .from('vendors') // Check if table is 'vendors' or 'vendor' - schema says @@map("vendor") usually but relations use 'vendor'
+        .from('vendor') // Changed from 'vendors' to 'vendor' to match schema usage in manager.ts
         .select('id, shopname, address, city, user:user_id(email)')
         .eq('status', 'APPROVED')
         .order('shopname', { ascending: true });
@@ -301,7 +301,7 @@ const AtHomeAppointmentsPage = () => {
 
     try {
       console.log(`⚙️ Assigning vendor ${selectedVendor} to booking ${selectedBooking.id}...`);
-      
+
       const session = await supabase.auth.getSession();
       const token = session.data.session?.access_token;
 
@@ -317,21 +317,19 @@ const AtHomeAppointmentsPage = () => {
         body: JSON.stringify({
           vendorId: selectedVendor,
           // Assign all items to this vendor for now
-          itemIds: selectedBooking.items.map((_, idx) => selectedBooking.items[idx]) // We need IDs from booking items... wait.
-          // The selectedBooking items mapping lost the IDs. We need to preserve them or re-fetch.
-          // Let's assume we fetch items properly.
+          itemIds: selectedBooking.items.map(item => item.id)
         })
       });
-      
+
       // Wait, checked fetchBookings mapping:
       // items: (b.items || []).map((it: any) => ({ ... })) -> It doesn't preserve item ID in the root object clearly?
       // It does: `id: b.id` is booking ID. `items` array has `service` object.
       // We need booking_item ids. 
       // The fetchBookings select: items:booking_items ( id, ... )
       // transform: items: (b.items || []).map((it: any) => ({ ... it.id is lost? No, let's check }))
-      
+
       // I will fix the fetch mapping first to include ID to be safe.
-      
+
       if (!response.ok) {
         const err = await response.json();
         throw new Error(err.message || 'Failed to assign vendor');
@@ -615,7 +613,7 @@ const AtHomeAppointmentsPage = () => {
               Cancel
             </Button>
             <Button
-              onClick={confirmAssignBeautician}
+              onClick={confirmAssignVendor}
               disabled={!selectedVendor || vendors.length === 0}
               className="bg-[#4e342e] hover:bg-[#3b2c26] text-white"
             >

@@ -98,89 +98,90 @@ const VendorDetailsPage = () => {
         }
     }, [id]);
 
+    const isValidImage = (url: any): boolean => {
+        if (!url || typeof url !== 'string') return false;
+        return !url.includes('api/placeholder');
+    };
+
     const fetchVendorDetails = async () => {
         try {
             setLoading(true);
             console.log('Fetching vendor details for ID:', id);
-            const response = await fetch('http://localhost:3001/api/vendors/' + id);
 
-            if (!response.ok) {
-                const errorText = await response.text();
-                console.error('Failed to fetch vendor details:', errorText);
-                throw new Error('Failed to fetch vendor details');
-            }
-
-            const data = await response.json();
+            // Use the unified backend endpoint
+            const response = await api.get(`/vendors/${id}`);
+            const data: any = response.data;
             console.log('Vendor data received:', data);
 
-            // Transform vendor data - API returns vendor with nested data
             if (data.vendor) {
+                // Transform Vendor - STRICT: No fake defaults
                 const transformedVendor: Vendor = {
                     id: data.vendor.id,
-                    name: data.vendor.name || data.vendor.shopName,
-                    description: data.vendor.description || '',
-                    address: data.vendor.address || '',
-                    city: data.vendor.city,
-                    rating: data.vendor.rating || 4.8,
+                    name: data.vendor.name || 'Unknown Salon', // Fallback only for crucial UI text
+                    description: data.vendor.description || 'No description available.',
+                    address: data.vendor.address || 'Address not provided',
+                    city: data.vendor.city || '',
+                    rating: data.vendor.rating, // Allow null
                     reviewCount: data.vendor.reviewCount || 0,
-                    distance: data.vendor.distance || 0,
+                    distance: data.vendor.distance || null,
                     categories: data.vendor.categories || [],
-                    images: data.vendor.images || [],
-                    isOpen: data.vendor.isOpen !== undefined ? data.vendor.isOpen : true,
-                    nextAvailableSlot: data.vendor.nextAvailableSlot || 'Available today',
-                    phone: data.vendor.phone || '',
+
+                    // Filter out placeholder images from array
+                    images: (data.vendor.images && Array.isArray(data.vendor.images))
+                        ? data.vendor.images.filter(isValidImage)
+                        : [],
+
+                    isOpen: data.vendor.isOpen !== undefined ? data.vendor.isOpen : false, // Default closed if unknown
+                    nextAvailableSlot: data.vendor.nextAvailableSlot || null, // No fake slot
+                    phone: data.vendor.phone || 'No phone provided',
                     email: data.vendor.email || '',
                     workingHours: data.vendor.workingHours || {}
                 };
-
                 setVendor(transformedVendor);
 
-                // Transform services - API returns services as separate array
-                console.log('Services data from API:', data.services);
+                // Transform Services - STRICT
                 const transformedServices: Service[] = (data.services || []).map((service: any) => ({
                     id: service.id,
                     name: service.name,
                     description: service.description || '',
                     price: service.price,
-                    duration: service.duration || 60,
+                    duration: service.duration,
                     category: service.category || 'General',
-                    image: service.image || '/api/placeholder/300/200',
-                    isAvailable: service.isActive !== undefined ? service.isActive : true
+
+                    // Validate image URL
+                    image: isValidImage(service.image) ? service.image : null,
+
+                    isAvailable: service.is_active !== undefined ? service.is_active : (service.isAvailable !== undefined ? service.isAvailable : true)
                 }));
+                // ...
 
-                console.log('Transformed services:', transformedServices);
                 setServices(transformedServices);
+
+                // Transform Products - STRICT
+                const transformedProducts: Product[] = (data.products || []).map((p: any) => ({
+                    id: p.id,
+                    name: p.name || p.product_name,
+                    description: p.description || '',
+                    price: p.price || p.price_cdf,
+
+                    // Validate image URL
+                    image: isValidImage(p.image || p.image_url) ? (p.image || p.image_url) : null,
+
+                    inStock: p.inStock !== undefined ? p.inStock : ((p.stock_quantity || 0) > 0),
+                    category: p.category || p.category_id || 'General'
+                }));
+                console.log('Products loaded:', transformedProducts.length);
+                setProducts(transformedProducts);
+
+                // Transform Beauticians - STRICT
+                setBeauticians((data.beauticians || []).map((b: any) => ({
+                    ...b,
+                    avatar: isValidImage(b.avatar || b.avatar_url) ? (b.avatar || b.avatar_url) : null
+                })));
             }
-
-            // Fetch products
-            try {
-                const productsResponse = await api.get(`/catalog/products?vendorId=${id}`);
-                const productsData = productsResponse.data as any; // Adjust type as needed
-                console.log('Products data received:', productsData);
-
-                if (productsData && Array.isArray(productsData.products)) {
-                    const transformedProducts: Product[] = productsData.products.map((p: any) => ({
-                        id: p.id,
-                        name: p.product_name,
-                        description: p.description || '',
-                        price: p.price_cdf,
-                        image: p.image_url || '/api/placeholder/150/150',
-                        inStock: p.stock_quantity > 0,
-                        category: p.category_id
-                    }));
-                    setProducts(transformedProducts);
-                } else {
-                    setProducts([]);
-                }
-            } catch (prodError) {
-                console.error('Error fetching products:', prodError);
-                // Fallback to empty or mock if needed, but for now empty
-                setProducts([]);
-            }
-
-            // Set mock data for beauticians for now
-            setBeauticians(data.beauticians || []);
-            // Products are now fetched above
+        } catch (error) {
+            console.error('Failed to fetch vendor details:', error);
+            // setVendor(null); // Keep null to show error state
         } finally {
             setLoading(false);
         }
@@ -270,42 +271,76 @@ const VendorDetailsPage = () => {
         );
     }
 
+    // Determine Hero Image - Fallback to gradient if no specific image
+    const heroImageStyle = vendor.images.length > 0
+        ? { backgroundImage: `url(${vendor.images[0]})`, backgroundSize: 'cover', backgroundPosition: 'center' }
+        : {}; // If empty, the gradient class will take over
+
     return (
-        <div className="min-h-screen bg-background">
+        <div className="min-h-screen bg-[#fcfbf9] font-sans">
             <Navigation />
 
             {/* HERO SECTION */}
             <div className="relative pt-20">
-                <div className="h-[340px] bg-gradient-to-br from-[#4e342e] via-[#6d4c41] to-[#4e342e]">
-                    <div className="container mx-auto h-full px-4 flex items-end pb-6">
-                        <div className="w-full flex items-center justify-between">
-                            <div>
-                                <div className="flex items-center gap-3 mb-3">
-                                    <Link to="/salon-visit">
-                                        <Button variant="outline" size="sm" className="border-white border-opacity-60 text-white hover:bg-white hover:text-[#4e342e]">
-                                            <ArrowLeft className="w-4 h-4 mr-2" />
-                                            Back
-                                        </Button>
-                                    </Link>
-                                    <Badge variant="secondary" className="bg-white bg-opacity-90 text-[#4e342e]">Verified Vendor</Badge>
-                                </div>
-                                <h1 className="text-3xl sm:text-4xl lg:text-5xl font-serif font-bold text-white drop-shadow">
-                                    {vendor.name}
-                                </h1>
-                                <div className="flex items-center gap-4 mt-3 text-white opacity-90">
-                                    <span className="flex items-center gap-1">
-                                        <Star className="w-4 h-4 text-yellow-300 fill-current" /> {vendor.rating} ({vendor.reviewCount})
-                                    </span>
-                                    <span className={"px-2.5 py-1 rounded text-sm " + (vendor.isOpen ? 'bg-emerald-500 bg-opacity-20' : 'bg-red-500 bg-opacity-20')}>{vendor.isOpen ? 'Open' : 'Closed'}</span>
-                                </div>
-                            </div>
-                            <div className="hidden md:flex items-center gap-2">
-                                <Button variant="outline" size="sm" className="border-white border-opacity-60 text-white hover:bg-white hover:text-[#4e342e]">
-                                    <Heart className="w-4 h-4" />
+                <div
+                    className={`h-[400px] w-full bg-gradient-to-br from-[#4e342e] via-[#6d4c41] to-[#4e342e] relative`}
+                    style={heroImageStyle}
+                >
+                    {/* Overlay for readability if image exists */}
+                    {vendor.images.length > 0 && <div className="absolute inset-0 bg-black/40"></div>}
+
+                    <div className="container mx-auto h-full px-4 py-8 flex flex-col relative z-10">
+                        {/* Top Bar: Back Button */}
+                        <div className="flex justify-between items-start mb-6">
+                            <Link to="/salon-visit">
+                                <Button variant="outline" size="sm" className="border-white/40 bg-black/20 text-white hover:bg-white hover:text-[#4e342e] backdrop-blur-sm transition-all border-0">
+                                    <ArrowLeft className="w-4 h-4 mr-2" />
+                                    Back to Salons
                                 </Button>
-                                <Button variant="outline" size="sm" className="border-white border-opacity-60 text-white hover:bg-white hover:text-[#4e342e]">
+                            </Link>
+                            <div className="hidden md:flex items-center gap-2">
+                                <Button variant="outline" size="sm" className="border-white/40 bg-black/20 text-white hover:bg-white hover:text-[#4e342e] border-0 backdrop-blur-sm">
                                     <Share2 className="w-4 h-4" />
                                 </Button>
+                            </div>
+                        </div>
+
+                        {/* Middle: Shop Name - Explicit Visibility as requested */}
+                        <div className="mt-2 mb-auto">
+                            <h1 className="text-4xl md:text-5xl lg:text-6xl font-serif font-bold text-white drop-shadow-lg tracking-tight mb-2">
+                                {vendor.name}
+                            </h1>
+                            <div className="flex items-center gap-2 text-white/90">
+                                <MapPin className="w-4 h-4" />
+                                <span className="text-lg">{vendor.city || 'Location N/A'}</span>
+                            </div>
+                        </div>
+
+                        {/* Bottom Bar: Badges & Stats */}
+                        <div className="flex items-end justify-between pb-4">
+                            <div className="flex flex-col gap-3">
+                                <div className="flex gap-2">
+                                    <Badge variant="secondary" className="bg-white/90 text-[#4e342e] font-medium backdrop-blur-md">
+                                        <CheckCircle className="w-3 h-3 mr-1 text-[#4e342e]" />
+                                        Verified Vendor
+                                    </Badge>
+                                    <div className={"px-2.5 py-0.5 rounded-full text-xs font-semibold flex items-center gap-1 " + (vendor.isOpen ? 'bg-emerald-500/80 text-white' : 'bg-red-500/80 text-white')}>
+                                        {vendor.isOpen ? 'Open Now' : 'Closed'}
+                                    </div>
+                                </div>
+
+                                <div className="flex items-center gap-4 text-white/90 text-sm font-medium">
+                                    {vendor.rating ? (
+                                        <span className="flex items-center gap-1.5 bg-black/30 px-3 py-1 rounded-full backdrop-blur-sm border border-white/10">
+                                            <Star className="w-4 h-4 text-yellow-400 fill-yellow-400" />
+                                            {vendor.rating} <span className="opacity-70 font-normal">({vendor.reviewCount} reviews)</span>
+                                        </span>
+                                    ) : (
+                                        <span className="flex items-center gap-1.5 bg-black/30 px-3 py-1 rounded-full backdrop-blur-sm text-white/70 italic border border-white/10">
+                                            No ratings yet
+                                        </span>
+                                    )}
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -313,61 +348,77 @@ const VendorDetailsPage = () => {
             </div>
 
             {/* CONTENT */}
-            <div className="container mx-auto px-4 -mt-10 relative z-10">
+            <div className="container mx-auto px-4 -mt-12 relative z-10">
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                     {/* LEFT: MAIN */}
                     <div className="lg:col-span-2">
                         {/* ABOUT + INFO */}
                         <motion.div {...fadeInUp}>
-                            <Card className="border-0 bg-white shadow-xl mb-6 overflow-hidden">
-                                <CardContent className="p-6">
-                                    <p className="text-[#6d4c41] leading-relaxed mb-6">{vendor.description}</p>
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                                        <div className="flex items-center space-x-3">
-                                            <MapPin className="w-5 h-5 text-[#4e342e]" />
+                            <Card className="border-0 bg-white shadow-xl mb-8 overflow-hidden rounded-xl">
+                                <CardContent className="p-8">
+                                    <div className="mb-6">
+                                        <h2 className="text-xl font-serif font-bold text-[#4e342e] mb-3">About {vendor.name}</h2>
+                                        <p className="text-[#6d4c41] leading-relaxed text-[15px]">{vendor.description}</p>
+                                    </div>
+
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8 p-6 bg-[#fcfbf9] rounded-xl border border-[#efebe9]">
+                                        <div className="flex items-start space-x-4">
+                                            <div className="p-2 bg-white rounded-lg shadow-sm">
+                                                <MapPin className="w-5 h-5 text-[#8d6e63]" />
+                                            </div>
                                             <div>
-                                                <p className="font-medium text-[#4e342e]">Address</p>
-                                                <p className="text-[#6d4c41]">{vendor.address}</p>
+                                                <p className="font-semibold text-[#4e342e] text-sm">Address</p>
+                                                <p className="text-[#6d4c41] text-sm mt-0.5">{vendor.address}</p>
                                             </div>
                                         </div>
-                                        <div className="flex items-center space-x-3">
-                                            <Phone className="w-5 h-5 text-[#4e342e]" />
+                                        <div className="flex items-start space-x-4">
+                                            <div className="p-2 bg-white rounded-lg shadow-sm">
+                                                <Phone className="w-5 h-5 text-[#8d6e63]" />
+                                            </div>
                                             <div>
-                                                <p className="font-medium text-[#4e342e]">Phone</p>
-                                                <p className="text-[#6d4c41]">{vendor.phone}</p>
+                                                <p className="font-semibold text-[#4e342e] text-sm">Phone</p>
+                                                <p className="text-[#6d4c41] text-sm mt-0.5">{vendor.phone}</p>
                                             </div>
                                         </div>
-                                        <div className="flex items-center space-x-3">
-                                            <Mail className="w-5 h-5 text-[#4e342e]" />
+                                        <div className="flex items-start space-x-4">
+                                            <div className="p-2 bg-white rounded-lg shadow-sm">
+                                                <Mail className="w-5 h-5 text-[#8d6e63]" />
+                                            </div>
                                             <div>
-                                                <p className="font-medium text-[#4e342e]">Email</p>
-                                                <p className="text-[#6d4c41]">{vendor.email}</p>
+                                                <p className="font-semibold text-[#4e342e] text-sm">Email</p>
+                                                <p className="text-[#6d4c41] text-sm mt-0.5">{vendor.email}</p>
                                             </div>
                                         </div>
-                                        <div className="flex items-center space-x-3">
-                                            <Clock className="w-5 h-5 text-[#4e342e]" />
+                                        <div className="flex items-start space-x-4">
+                                            <div className="p-2 bg-white rounded-lg shadow-sm">
+                                                <Clock className="w-5 h-5 text-[#8d6e63]" />
+                                            </div>
                                             <div>
-                                                <p className="font-medium text-[#4e342e]">Next Available</p>
-                                                <p className="text-[#6d4c41]">{vendor.nextAvailableSlot}</p>
+                                                <p className="font-semibold text-[#4e342e] text-sm">Next Available</p>
+                                                <p className="text-[#6d4c41] text-sm mt-0.5">{vendor.nextAvailableSlot}</p>
                                             </div>
                                         </div>
                                     </div>
-                                    <div className="mb-6 p-4 rounded-lg bg-[#f8d7da] bg-opacity-30 border border-[#f8d7da]">
-                                        <div className="flex items-start gap-3">
-                                            <CheckCircle className="w-5 h-5 text-[#4e342e] mt-0.5" />
-                                            <div>
-                                                <p className="font-semibold text-[#4e342e]">What happens after you book?</p>
-                                                <p className="text-sm text-[#6d4c41]">Your appointment is saved to this vendor’s dashboard instantly. They can confirm, assign staff, and prepare for your visit.</p>
-                                            </div>
+
+                                    <div className="mb-8 p-5 rounded-xl bg-orange-50 border border-orange-100 flex items-start gap-4">
+                                        <div className="p-1.5 bg-orange-100 rounded-full mt-0.5">
+                                            <CheckCircle className="w-4 h-4 text-orange-700" />
+                                        </div>
+                                        <div>
+                                            <p className="font-semibold text-[#4e342e] mb-1">What happens after you book?</p>
+                                            <p className="text-sm text-[#6d4c41] leading-relaxed">Your appointment is saved to this vendor’s booking dashboard instantly. They can confirm, assign staff, and prepare for your visit.</p>
                                         </div>
                                     </div>
+
                                     <div>
-                                        <h3 className="font-semibold text-[#4e342e] mb-3">Working Hours</h3>
-                                        <div className="grid grid-cols-2 gap-2">
+                                        <h3 className="font-semibold text-[#4e342e] mb-4 flex items-center gap-2">
+                                            <Calendar className="w-4 h-4" /> Working Hours
+                                        </h3>
+                                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-y-3 gap-x-8">
                                             {Object.entries(vendor.workingHours).map(([day, hours]) => (
-                                                <div key={day} className="flex justify-between text-sm">
-                                                    <span className="text-[#4e342e] font-medium">{day}</span>
-                                                    <span className="text-[#6d4c41]">{hours}</span>
+                                                <div key={day} className="flex flex-col">
+                                                    <span className="text-[#8d6e63] text-xs font-medium uppercase tracking-wide mb-1">{day}</span>
+                                                    <span className="text-[#4e342e] text-sm font-medium">{hours}</span>
                                                 </div>
                                             ))}
                                         </div>
@@ -376,43 +427,46 @@ const VendorDetailsPage = () => {
                             </Card>
                         </motion.div>
 
-                        {/* Services (simplified to resolve parser issue) */}
-                        <div className="mt-6">
+                        {/* Services Section */}
+                        <div className="mt-10">
+                            <h2 className="text-2xl font-serif font-bold text-[#4e342e] mb-6 flex items-center">
+                                <Scissors className="w-5 h-5 mr-2" />
+                                Services
+                            </h2>
                             {services.length === 0 ? (
-                                <div className="text-center py-12 bg-[#f8d7da] bg-opacity-20 rounded-xl">
-                                    <Scissors className="w-16 h-16 text-[#6d4c41] opacity-50 mx-auto mb-4" />
-                                    <p className="text-lg font-semibold text-[#4e342e] mb-2">No services available</p>
-                                    <p className="text-[#6d4c41]">This vendor hasn't added any services yet.</p>
+                                <div className="text-center py-12 bg-white rounded-xl border border-dashed border-[#d7ccc8]">
+                                    <div className="bg-[#efebe9] p-4 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
+                                        <Scissors className="w-8 h-8 text-[#8d6e63]" />
+                                    </div>
+                                    <h3 className="text-lg font-medium text-[#4e342e] mb-1">No services yet</h3>
+                                    <p className="text-[#8d6e63]">This vendor hasn't listed any services.</p>
                                 </div>
                             ) : (
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                                     {services.map((service) => (
-                                        <Card key={service.id} className="border-0 bg-white shadow-lg overflow-hidden flex flex-row">
+                                        <Card key={service.id} className="border-0 bg-white shadow-md hover:shadow-lg transition-shadow overflow-hidden flex flex-row h-full rounded-xl">
                                             {service.image && (
-                                                <div className="w-1/3 min-w-[120px] max-w-[150px]">
-                                                    <img src={service.image} alt={service.name} className="h-full w-full object-cover" />
+                                                <div className="w-1/3 min-w-[110px] max-w-[130px] relative">
+                                                    <img src={service.image} alt={service.name} className="h-full w-full object-cover absolute inset-0" />
                                                 </div>
                                             )}
-                                            <CardContent className="p-4 flex-1">
-                                                <div className="flex justify-between items-start mb-2">
-                                                    <h3 className="text-lg font-semibold text-[#4e342e]">{service.name}</h3>
-                                                    <span className="text-lg font-bold text-[#4e342e]">${service.price}</span>
+                                            <CardContent className="p-4 flex-1 flex flex-col">
+                                                <div className="flex justify-between items-start mb-1">
+                                                    <h3 className="font-semibold text-[#4e342e] line-clamp-1" title={service.name}>{service.name}</h3>
+                                                    <span className="font-bold text-[#4e342e] whitespace-nowrap ml-2">${service.price}</span>
                                                 </div>
-                                                <p className="text-[#6d4c41] text-sm mb-3 line-clamp-2">{service.description}</p>
-                                                <div className="flex items-center justify-between mt-auto">
-                                                    <div className="flex items-center space-x-4 text-sm text-[#6d4c41]">
-                                                        <span className="flex items-center">
-                                                            <Clock className="w-4 h-4 mr-1" />
-                                                            {service.duration} min
-                                                        </span>
-                                                        <Badge variant="secondary">{service.category}</Badge>
+                                                <p className="text-[#6d4c41] text-xs mb-3 line-clamp-2 flex-grow">{service.description}</p>
+                                                <div className="flex items-center justify-between mt-auto pt-2 border-t border-gray-50">
+                                                    <div className="flex items-center text-xs text-[#8d6e63] font-medium">
+                                                        <Clock className="w-3 h-3 mr-1" />
+                                                        {service.duration} min
                                                     </div>
                                                     <Button
                                                         size="sm"
                                                         onClick={() => addService(service)}
-                                                        className="bg-[#4e342e] hover:bg-[#6d4c41] text-white"
+                                                        className="h-8 px-3 bg-[#4e342e] hover:bg-[#6d4c41] text-white text-xs rounded-full"
                                                     >
-                                                        <Plus className="w-4 h-4 mr-1" />
+                                                        <Plus className="w-3 h-3 mr-1" />
                                                         Add
                                                     </Button>
                                                 </div>
@@ -423,38 +477,47 @@ const VendorDetailsPage = () => {
                             )}
                         </div>
 
-
                         {/* Products Section */}
-                        <div className="mt-8">
-                            <h2 className="text-2xl font-serif font-bold text-[#4e342e] mb-6">Products</h2>
+                        <div className="mt-12 mb-10">
+                            <h2 className="text-2xl font-serif font-bold text-[#4e342e] mb-6 flex items-center">
+                                <Sparkles className="w-5 h-5 mr-2" />
+                                Products
+                            </h2>
                             {products.length === 0 ? (
-                                <div className="text-center py-8 bg-[#f8d7da] bg-opacity-20 rounded-xl">
-                                    <ShoppingCart className="w-12 h-12 text-[#6d4c41] opacity-50 mx-auto mb-3" />
-                                    <p className="text-lg font-semibold text-[#4e342e]">No products available</p>
+                                <div className="text-center py-12 bg-white rounded-xl border border-dashed border-[#d7ccc8]">
+                                    <div className="bg-[#efebe9] p-4 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
+                                        <ShoppingCart className="w-8 h-8 text-[#8d6e63]" />
+                                    </div>
+                                    <h3 className="text-lg font-medium text-[#4e342e] mb-1">No products yet</h3>
+                                    <p className="text-[#8d6e63]">This vendor currently has no products for sale.</p>
                                 </div>
                             ) : (
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                                     {products.map((product) => (
-                                        <Card key={product.id} className="border-0 bg-white shadow-lg overflow-hidden flex flex-row">
-                                            <div className="w-1/3 min-w-[120px] max-w-[150px]">
-                                                <img
-                                                    src={product.image || '/api/placeholder/150/150'}
-                                                    alt={product.name}
-                                                    className="h-full w-full object-cover"
-                                                />
+                                        <Card key={product.id} className="border-0 bg-white shadow-md hover:shadow-lg transition-shadow overflow-hidden flex flex-row h-full rounded-xl">
+                                            <div className="w-1/3 min-w-[110px] max-w-[130px] relative bg-gray-100 flex items-center justify-center">
+                                                {product.image ? (
+                                                    <img
+                                                        src={product.image}
+                                                        alt={product.name}
+                                                        className="h-full w-full object-cover absolute inset-0"
+                                                    />
+                                                ) : (
+                                                    <ShoppingCart className="w-8 h-8 text-gray-300" />
+                                                )}
                                             </div>
-                                            <CardContent className="p-4 flex-1">
-                                                <div className="flex justify-between items-start mb-2">
-                                                    <h3 className="text-lg font-semibold text-[#4e342e]">{product.name}</h3>
-                                                    <span className="text-lg font-bold text-[#4e342e]">${product.price}</span>
+                                            <CardContent className="p-4 flex-1 flex flex-col">
+                                                <div className="flex justify-between items-start mb-1">
+                                                    <h3 className="font-semibold text-[#4e342e] line-clamp-1" title={product.name}>{product.name}</h3>
+                                                    <span className="font-bold text-[#4e342e] whitespace-nowrap ml-2">${product.price}</span>
                                                 </div>
-                                                <p className="text-[#6d4c41] text-sm mb-3 line-clamp-2">{product.description}</p>
-                                                <div className="flex items-center justify-between mt-auto">
-                                                    <div className="text-sm text-[#6d4c41]">
+                                                <p className="text-[#6d4c41] text-xs mb-3 line-clamp-2 flex-grow">{product.description}</p>
+                                                <div className="flex items-center justify-between mt-auto pt-2 border-t border-gray-50">
+                                                    <div className="text-xs">
                                                         {product.inStock ? (
-                                                            <span className="text-green-600 font-medium">In Stock</span>
+                                                            <span className="text-emerald-600 font-medium bg-emerald-50 px-2 py-0.5 rounded-full">In Stock</span>
                                                         ) : (
-                                                            <span className="text-red-500 font-medium">Out of Stock</span>
+                                                            <span className="text-red-500 font-medium bg-red-50 px-2 py-0.5 rounded-full">Out of Stock</span>
                                                         )}
                                                     </div>
                                                     <Button
@@ -464,9 +527,9 @@ const VendorDetailsPage = () => {
                                                             updateProductQuantity(product.id, currentQty + 1);
                                                         }}
                                                         disabled={!product.inStock}
-                                                        className="bg-[#4e342e] hover:bg-[#6d4c41] text-white"
+                                                        className="h-8 px-3 bg-[#4e342e] hover:bg-[#6d4c41] text-white text-xs rounded-full"
                                                     >
-                                                        <Plus className="w-4 h-4 mr-1" />
+                                                        <Plus className="w-3 h-3 mr-1" />
                                                         Add
                                                     </Button>
                                                 </div>
@@ -481,10 +544,10 @@ const VendorDetailsPage = () => {
                     {/* Booking Summary */}
                     <div className="lg:col-span-1">
                         <motion.div {...fadeInUp}>
-                            <Card className="border-0 bg-white shadow-lg sticky top-24">
-                                <CardHeader>
-                                    <CardTitle className="text-[#4e342e] flex items-center">
-                                        <ShoppingCart className="w-5 h-5 mr-2" />
+                            <Card className="border-0 bg-white shadow-xl sticky top-24 rounded-xl overflow-hidden">
+                                <CardHeader className="bg-[#fcfbf9] border-b border-[#efebe9] pb-4">
+                                    <CardTitle className="text-[#4e342e] flex items-center text-lg">
+                                        <ShoppingCart className="w-5 h-5 mr-3 text-[#8d6e63]" />
                                         Booking Summary
                                     </CardTitle>
                                 </CardHeader>

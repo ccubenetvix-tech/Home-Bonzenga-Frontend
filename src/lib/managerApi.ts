@@ -322,13 +322,6 @@ export const managerApi = {
   },
 
   /**
-   * Get vendor services (Read-only)
-   */
-  async getVendorServices(vendorId: string) {
-    return apiRequest<any>(`/manager/vendors/${vendorId}/services`);
-  },
-
-  /**
    * Approve vendor - Update status to 'approved' in Supabase
    */
   async approveVendor(vendorId: string) {
