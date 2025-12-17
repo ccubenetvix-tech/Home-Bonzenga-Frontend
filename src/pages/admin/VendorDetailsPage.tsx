@@ -94,31 +94,24 @@ const VendorDetailsPage = () => {
     const fetchData = async (id: string) => {
         try {
             setLoading(true);
-            const [vendorRes, servicesRes, employeesRes, productsRes] = await Promise.all([
-                adminApi.getVendorDetails(id),
-                adminApi.getVendorServices(id),
-                adminApi.getVendorEmployees(id),
-                adminApi.getVendorProducts(id)
-            ]);
+            const response = await adminApi.getVendorDetails(id);
 
-            if (vendorRes.success && vendorRes.data) {
-                // Check if response data has a nested 'vendor' property (common in admin API)
-                const vendorData = vendorRes.data.vendor || vendorRes.data;
-                setVendor(vendorData);
+            if (response.success && response.data) {
+                const data = response.data;
+                console.log('📦 Vendor Details Response:', data); // Debug logging
+
+                setVendor(data.vendor);
+
+                // STRICT CHECK: Ensure services is an array or default to empty
+                const servicesList = Array.isArray(data.services) ? data.services : [];
+                console.log(`✅ Loaded ${servicesList.length} services`);
+                setServices(servicesList);
+
+                setEmployees(data.employees || []);
+                setProducts(data.products || []);
             } else {
-                throw new Error(vendorRes.message || 'Failed to fetch vendor details');
-            }
-
-            if (servicesRes.success) {
-                setServices(servicesRes.data?.services || []);
-            }
-
-            if (employeesRes.success) {
-                setEmployees(employeesRes.data?.employees || []);
-            }
-
-            if (productsRes.success) {
-                setProducts(productsRes.data?.products || []);
+                console.error('❌ Failed payload:', response);
+                throw new Error(response.message || 'Failed to fetch vendor details');
             }
 
         } catch (error: any) {

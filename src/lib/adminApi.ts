@@ -165,7 +165,13 @@ export const adminApi = {
    * Get vendor details
    */
   async getVendorDetails(vendorId: string) {
-    return apiRequest<any>(`/admin/vendors/${vendorId}`);
+    // Return explicitly set type to avoid losing properties
+    return apiRequest<{
+      vendor: any;
+      services: any[];
+      products: any[];
+      employees: any[];
+    }>(`/admin/vendors/${vendorId}`);
   },
 
   /**
