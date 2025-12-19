@@ -8,12 +8,12 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import DashboardLayout from '@/components/DashboardLayout';
-import { 
-  Calendar, 
-  Clock, 
-  DollarSign, 
-  TrendingUp, 
-  User, 
+import {
+  Calendar,
+  Clock,
+  DollarSign,
+  TrendingUp,
+  User,
   MapPin,
   Phone,
   Star,
@@ -35,6 +35,7 @@ import { toast } from 'sonner';
 import { useCart } from '@/contexts/CartContext';
 import { supabase } from '@/lib/supabase';
 import { supabaseConfig } from '@/config/supabase';
+import { api } from '@/lib/api';
 
 interface DashboardStats {
   activeBookings: number;
@@ -122,9 +123,8 @@ const CustomerDashboard = () => {
   const fetchDashboardData = async () => {
     try {
       setLoading(true);
-      
+
       if (!user?.id) {
-        console.log('No user ID available');
         setStats({
           activeBookings: 0,
           completedBookings: 0,
@@ -132,141 +132,60 @@ const CustomerDashboard = () => {
           totalBookings: 0
         });
         setBookings([]);
-        setInvoices([]);
         return;
       }
 
-      const userId = user.id;
+      // Fetch bookings from backend API
+      const response = await api.get('/customer/bookings');
 
-      // First, check if Supabase is configured
-      if (!supabaseConfig.isConfigured) {
-        console.warn('Supabase not configured, using empty data');
+      if (response.data.success) {
+        const bookingsData = response.data.data;
+
+        // Transform backend bookings to frontend Booking interface
+        const transformedBookings: Booking[] = bookingsData.map((b: any) => ({
+          id: b.id,
+          bookingNumber: b.id.substring(0, 8).toUpperCase(),
+          type: b.booking_type === 'AT_HOME' ? 'At-Home' : 'Salon Visit',
+          category: 'Beauty', // customized based on services if needed
+          status: mapBookingStatus(b.status),
+          paymentStatus: b.payments?.[0]?.status?.toLowerCase() === 'completed' ? 'paid' : 'unpaid',
+          scheduledDate: b.scheduledDate || b.created_at,
+          scheduledTime: b.scheduledTime || '10:00 AM',
+          total: parseFloat(b.total) || 0,
+          beautician: b.employee ? {
+            id: b.employee.id,
+            firstName: b.employee.name.split(' ')[0],
+            lastName: b.employee.name.split(' ')[1] || '',
+            skills: []
+          } : undefined,
+          services: b.items?.map((item: any) => ({
+            id: item.service_id,
+            name: item.service?.name || item.name || 'Service',
+            price: item.price,
+            duration: item.duration || 60
+          })) || [],
+          createdAt: b.created_at
+        }));
+
+        setBookings(transformedBookings);
+
+        // Calculate stats
         setStats({
-          activeBookings: 0,
-          completedBookings: 0,
-          pendingPayments: 0,
-          totalBookings: 0
-        });
-        setBookings([]);
-        setInvoices([]);
-        return;
-      }
-
-      // Fetch bookings directly from Supabase with related data
-      // Simplified query to avoid nested relationship issues
-      const { data: bookingsData, error: bookingsError } = await supabase
-        .from('bookings')
-        .select(`
-          *,
-          vendor:vendor!vendor_id(
-            id,
-            shopname,
-            address,
-            city,
-            state
-          ),
-          booking_items(
-            id,
-            quantity,
-            price,
-            service_id
-          ),
-          payments(
-            id,
-            status,
-            amount
-          )
-        `)
-        .eq('customer_id', userId)
-        .order('created_at', { ascending: false });
-
-      if (bookingsError) {
-        console.error('Error fetching bookings from Supabase:', bookingsError);
-        // Don't throw, just log and show empty state
-        setStats({
-          activeBookings: 0,
-          completedBookings: 0,
-          pendingPayments: 0,
-          totalBookings: 0
-        });
-        setBookings([]);
-        setInvoices([]);
-        toast.error('Failed to load bookings. Please check your connection.');
-        return;
-      }
-
-      // Fetch services for booking items if needed
-      const bookingItemIds = (bookingsData || [])
-        .flatMap((b: any) => (b.booking_items || []).map((item: any) => item.service_id))
-        .filter((id: string) => id);
-
-      let servicesMap: Record<string, any> = {};
-      if (bookingItemIds.length > 0) {
-        const { data: servicesData } = await supabase
-          .from('services')
-          .select('id, name, price, duration')
-          .in('id', [...new Set(bookingItemIds)]);
-        
-        if (servicesData) {
-          servicesMap = servicesData.reduce((acc: any, service: any) => {
-            acc[service.id] = service;
-            return acc;
-          }, {});
-        }
-      }
-
-      // Transform Supabase bookings to match the frontend interface
-      const transformedBookings: Booking[] = (bookingsData || []).map((booking: any) => {
-        // Determine payment status from payments
-        const payments = booking.payments || [];
-        const hasPaidPayment = payments.some((p: any) => p.status === 'COMPLETED');
-        const paymentStatus = hasPaidPayment ? 'paid' : 'unpaid';
-
-        // Extract services from booking items using the services map
-        const services = (booking.booking_items || []).map((item: any) => {
-          const service = servicesMap[item.service_id];
-          return {
-            id: service?.id || item.service_id || item.id,
-            name: service?.name || 'Service',
-            price: service?.price || item.price || 0,
-            duration: service?.duration || 60
-          };
+          activeBookings: transformedBookings.filter(b =>
+            ['confirmed', 'pending_approval', 'pending', 'in_progress', 'awaiting_manager', 'manager_review'].includes(b.status)
+          ).length,
+          completedBookings: transformedBookings.filter(b => b.status === 'completed').length,
+          pendingPayments: transformedBookings.filter(b => b.paymentStatus === 'unpaid').length,
+          totalBookings: transformedBookings.length
         });
 
-        return {
-          id: booking.id,
-          bookingNumber: booking.id.substring(0, 8).toUpperCase(),
-          type: 'At-Home', // Default to At-Home, can be determined from booking_type if available
-          category: 'Beauty',
-          status: mapBookingStatus(booking.status || 'PENDING'),
-          paymentStatus: paymentStatus,
-          scheduledDate: booking.scheduled_date || booking.created_at,
-          scheduledTime: booking.scheduled_time || '10:00 AM',
-          total: parseFloat(booking.total) || 0,
-          beautician: undefined, // Can be added if employee_id is available
-          services: services,
-          createdAt: booking.created_at || new Date().toISOString()
-        };
-      });
-
-      // Calculate stats from bookings
-      setStats({
-        activeBookings: transformedBookings.filter(b => 
-          b.status === 'confirmed' || 
-          b.status === 'pending_approval' || 
-          b.status === 'pending' ||
-          b.status === 'in_progress'
-        ).length,
-        completedBookings: transformedBookings.filter(b => b.status === 'completed').length,
-        pendingPayments: transformedBookings.filter(b => b.paymentStatus === 'unpaid').length,
-        totalBookings: transformedBookings.length
-      });
-
-      setBookings(transformedBookings);
-      setInvoices([]); // Invoices can be generated from bookings if needed
+      } else {
+        throw new Error('Failed to fetch bookings');
+      }
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
-      // Fallback to empty data
+      toast.error('Failed to load bookings');
+      // Set empty state on error
       setStats({
         activeBookings: 0,
         completedBookings: 0,
@@ -274,8 +193,6 @@ const CustomerDashboard = () => {
         totalBookings: 0
       });
       setBookings([]);
-      setInvoices([]);
-      toast.error('Failed to load bookings. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -378,9 +295,9 @@ Issue Date: ${new Date(invoice.issueDate).toLocaleDateString()}
 Due Date: ${new Date(invoice.dueDate).toLocaleDateString()}
 
 SERVICES:
-${invoice.services.map(service => 
-  `- ${service.name} - ${service.price.toLocaleString()} CDF`
-).join('\n')}
+${invoice.services.map(service =>
+      `- ${service.name} - ${service.price.toLocaleString()} CDF`
+    ).join('\n')}
 
 TOTAL: ${invoice.amount.toLocaleString()} CDF
 Status: ${invoice.status}
@@ -397,7 +314,7 @@ Thank you for choosing Home Bonzenga!
     a.click();
     document.body.removeChild(a);
     window.URL.revokeObjectURL(url);
-    
+
     toast.success('Invoice downloaded successfully!');
   };
 
@@ -428,7 +345,7 @@ Thank you for choosing Home Bonzenga!
 
         {/* Quick Actions */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 mb-6 sm:mb-8">
-          <Button 
+          <Button
             className="h-16 sm:h-20 bg-[#4e342e] hover:bg-[#3b2c26] text-white text-base sm:text-lg"
             onClick={() => navigate('/customer/at-home-services')}
           >
@@ -436,7 +353,7 @@ Thank you for choosing Home Bonzenga!
             <span className="hidden xs:inline">Book At-Home Service</span>
             <span className="xs:hidden">At-Home Service</span>
           </Button>
-          <Button 
+          <Button
             variant="outline"
             className="h-16 sm:h-20 border-2 border-[#4e342e] text-[#4e342e] hover:bg-[#4e342e] hover:text-white text-base sm:text-lg"
             onClick={() => navigate('/customer/salon-visit')}
@@ -539,8 +456,8 @@ Thank you for choosing Home Bonzenga!
                         </div>
                         <div className="flex items-center gap-3">
                           <div className="text-[#4e342e] font-semibold whitespace-nowrap">{(item.price * item.quantity).toLocaleString()} CDF</div>
-                          <Button 
-                            variant="outline" 
+                          <Button
+                            variant="outline"
                             size="sm"
                             className="border-red-200 text-red-600 hover:bg-red-50"
                             onClick={() => removeItem(item.id)}
@@ -553,7 +470,7 @@ Thank you for choosing Home Bonzenga!
                   </div>
                 )}
                 <div className="mt-4 flex flex-col sm:flex-row gap-2 sm:gap-3">
-                  <Button 
+                  <Button
                     className="bg-[#4e342e] hover:bg-[#3b2c26] text-white text-sm sm:text-base"
                     onClick={() => navigate('/customer/at-home-services')}
                   >
@@ -562,7 +479,7 @@ Thank you for choosing Home Bonzenga!
                     <span className="sm:hidden">Add Services</span>
                   </Button>
                   {cartItems.length > 0 && (
-                    <Button 
+                    <Button
                       variant="outline"
                       className="border-red-300 text-red-600 hover:bg-red-50 text-sm sm:text-base"
                       onClick={() => clearCart()}
@@ -570,7 +487,7 @@ Thank you for choosing Home Bonzenga!
                       Clear Cart
                     </Button>
                   )}
-                  <Button 
+                  <Button
                     variant="outline"
                     className="border-[#4e342e] text-[#4e342e] hover:bg-[#4e342e] hover:text-white text-sm sm:text-base"
                     onClick={() => navigate('/customer/booking-confirmation')}
@@ -615,7 +532,7 @@ Thank you for choosing Home Bonzenga!
                     <Calendar className="w-16 h-16 text-[#6d4c41] mx-auto mb-4" />
                     <p className="text-xl font-semibold text-[#4e342e] mb-2">No bookings yet</p>
                     <p className="text-[#6d4c41] mb-4">Start by booking your first beauty service</p>
-                    <Button 
+                    <Button
                       className="bg-[#4e342e] hover:bg-[#3b2c26] text-white"
                       onClick={() => navigate('/customer/at-home-services')}
                     >
@@ -671,8 +588,8 @@ Thank you for choosing Home Bonzenga!
                             Services: {booking.services.map(s => s.name).join(', ')}
                           </div>
                           <div className="flex items-center gap-2">
-                            <Button 
-                              variant="outline" 
+                            <Button
+                              variant="outline"
                               size="sm"
                               className="border-[#4e342e] text-[#4e342e] hover:bg-[#4e342e] hover:text-white"
                               onClick={() => navigate(`/customer/bookings/${booking.id}`)}
@@ -681,8 +598,8 @@ Thank you for choosing Home Bonzenga!
                               View Details
                             </Button>
                             {booking.status !== 'completed' && (
-                              <Button 
-                                variant="outline" 
+                              <Button
+                                variant="outline"
                                 size="sm"
                                 className="border-green-300 text-green-700 hover:bg-green-50"
                                 onClick={() => markCompleted(booking.id)}
@@ -690,8 +607,8 @@ Thank you for choosing Home Bonzenga!
                                 Mark Completed
                               </Button>
                             )}
-                            <Button 
-                              variant="outline" 
+                            <Button
+                              variant="outline"
                               size="sm"
                               className="border-yellow-300 text-yellow-700 hover:bg-yellow-50"
                               onClick={() => togglePaymentStatus(booking.id)}
@@ -735,7 +652,7 @@ Thank you for choosing Home Bonzenga!
                               {booking.status}
                             </Badge>
                           </div>
-                          
+
                           <div className="space-y-2 text-sm text-[#6d4c41]">
                             <div className="flex items-center gap-2">
                               <Calendar className="w-4 h-4" />
@@ -806,8 +723,8 @@ Thank you for choosing Home Bonzenga!
                           <div className="text-sm text-[#6d4c41]">
                             Services: {invoice.services.map(s => s.name).join(', ')}
                           </div>
-                          <Button 
-                            variant="outline" 
+                          <Button
+                            variant="outline"
                             size="sm"
                             className="border-[#4e342e] text-[#4e342e] hover:bg-[#4e342e] hover:text-white"
                             onClick={() => downloadInvoice(invoice)}

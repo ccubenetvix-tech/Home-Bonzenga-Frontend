@@ -59,6 +59,8 @@ import AdminUsersPage from "@/pages/admin/UsersPage";
 import AdminVendorsPage from "@/pages/admin/VendorsPage";
 import AdminVendorDetailsPage from "@/pages/admin/VendorDetailsPage";
 import AdminManagersPage from "@/pages/admin/ManagersPage";
+import AtHomeBookingsPage from "@/pages/manager/AtHomeBookingsPage";
+import AtHomeAssignmentsPage from "@/pages/vendor/AtHomeAssignmentsPage";
 import AdminSettingsPage from "@/pages/admin/SettingsPage";
 import AdminProfilePage from "@/pages/admin/ProfilePage";
 import AdminAtHomeServicesPage from "@/pages/admin/AtHomeServicesPage";
@@ -419,6 +421,24 @@ const App = () => {
                           element={
                             <ProtectedRoute allowedRoles={["MANAGER"]}>
                               <AtHomeAppointmentsPage />
+                            </ProtectedRoute>
+                          }
+                        />
+                        <Route
+                          path="/manager/at-home-bookings"
+                          element={
+                            <ProtectedRoute allowedRoles={["MANAGER"]}>
+                              <AtHomeBookingsPage />
+                            </ProtectedRoute>
+                          }
+                        />
+                        <Route
+                          path="/vendor/at-home-assignments"
+                          element={
+                            <ProtectedRoute allowedRoles={["VENDOR"]}>
+                              <ProtectedVendorRoute>
+                                <AtHomeAssignmentsPage />
+                              </ProtectedVendorRoute>
                             </ProtectedRoute>
                           }
                         />
