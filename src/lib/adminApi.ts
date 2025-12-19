@@ -124,6 +124,23 @@ async function apiRequest<T>(
  */
 export const adminApi = {
   /**
+   * Generic GET request
+   */
+  async get<T>(endpoint: string) {
+    return apiRequest<T>(endpoint);
+  },
+
+  /**
+   * Generic POST request
+   */
+  async post<T>(endpoint: string, data: any) {
+    return apiRequest<T>(endpoint, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
+  /**
    * Get admin dashboard data
    */
   async getDashboard() {

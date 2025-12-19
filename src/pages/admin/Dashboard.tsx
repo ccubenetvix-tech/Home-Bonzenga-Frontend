@@ -6,11 +6,11 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Link } from 'react-router-dom';
 import DashboardLayout from '@/components/DashboardLayout';
-import { 
-  Users, 
-  Building, 
-  Calendar, 
-  DollarSign, 
+import {
+  Users,
+  Building,
+  Calendar,
+  DollarSign,
   TrendingUp,
   Eye,
   Settings,
@@ -36,7 +36,8 @@ import {
   Phone,
   Mail,
   Scissors,
-  Home
+  Home,
+  ArrowRight
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -127,12 +128,12 @@ const AdminDashboard = () => {
     try {
       setLoading(true);
       console.log('📊 Fetching admin dashboard data from backend API...');
-      
+
       // Import adminApi dynamically to avoid circular dependencies
       const { adminApi } = await import('@/lib/adminApi');
-      
+
       const result = await adminApi.getDashboard();
-      
+
       if (!result.success) {
         console.error('❌ Admin API returned error:', result.message);
         throw new Error(result.message || 'Failed to load dashboard data');
@@ -194,7 +195,7 @@ const AdminDashboard = () => {
         hint: error.hint,
         stack: error.stack
       });
-      
+
       // Show user-friendly error message
       if (error.message?.includes('JWT') || error.message?.includes('token') || error.message?.includes('unauthorized')) {
         toast.error('Authentication error. Please log in again.');
@@ -203,7 +204,7 @@ const AdminDashboard = () => {
       } else {
         toast.error(`Failed to load dashboard data: ${error.message || 'Unknown error'}. Check browser console for details.`);
       }
-      
+
       // Set empty stats to prevent crashes
       setStats({
         totalUsers: 0,
@@ -299,13 +300,13 @@ const AdminDashboard = () => {
 
   const handleVendorAction = async (vendorId: string, action: 'APPROVED' | 'REJECTED') => {
     if (processingVendor === vendorId) return;
-    
+
     try {
       setProcessingVendor(vendorId);
-      
+
       // Import adminApi dynamically
       const { adminApi } = await import('@/lib/adminApi');
-      
+
       const result = await adminApi.updateVendorStatus(vendorId, action);
 
       if (!result.success) {
@@ -313,7 +314,7 @@ const AdminDashboard = () => {
       }
 
       toast.success(`Vendor ${action === 'APPROVED' ? 'approved' : 'rejected'} successfully`);
-      
+
       // Refresh data
       await fetchAdminData();
     } catch (error: any) {
@@ -349,8 +350,8 @@ const AdminDashboard = () => {
               <p className="text-[#6d4c41]">Welcome back, {user?.firstName}! Here's your platform overview.</p>
             </div>
             <div className="flex items-center space-x-4">
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 className="border-[#4e342e] text-[#4e342e] hover:bg-[#4e342e] hover:text-white"
                 onClick={fetchAdminData}
                 disabled={loading}
@@ -704,13 +705,12 @@ const AdminDashboard = () => {
                   recentActivity.map((activity) => (
                     <div key={activity.id} className="p-4 hover:bg-[#fdf6f0] transition-colors">
                       <div className="flex items-start space-x-3">
-                        <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${
-                          activity.status === 'success' ? 'bg-green-500' :
+                        <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${activity.status === 'success' ? 'bg-green-500' :
                           activity.status === 'pending' ? 'bg-yellow-500' :
-                          activity.status === 'failed' ? 'bg-red-500' :
-                          activity.status === 'cancelled' ? 'bg-gray-500' :
-                          'bg-[#4e342e]'
-                        }`}>
+                            activity.status === 'failed' ? 'bg-red-500' :
+                              activity.status === 'cancelled' ? 'bg-gray-500' :
+                                'bg-[#4e342e]'
+                          }`}>
                           {getStatusIcon(activity.type)}
                         </div>
                         <div className="flex-1 min-w-0">
@@ -726,7 +726,7 @@ const AdminDashboard = () => {
                                   minute: '2-digit'
                                 })}
                               </p>
-                              
+
                               {/* User Info */}
                               {activity.user && (
                                 <div className="space-y-1 mb-2">
@@ -745,7 +745,7 @@ const AdminDashboard = () => {
                                   )}
                                 </div>
                               )}
-                              
+
                               {/* Vendor Info */}
                               {activity.vendor && (
                                 <div className="space-y-1 mb-2">
@@ -759,14 +759,14 @@ const AdminDashboard = () => {
                                   )}
                                 </div>
                               )}
-                              
+
                               {/* Amount */}
                               {activity.amount !== undefined && activity.amount > 0 && (
                                 <p className="text-sm text-[#4e342e] font-semibold mb-1">
                                   ${activity.amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                 </p>
                               )}
-                              
+
                               {/* Booking Type */}
                               {activity.bookingType && (
                                 <Badge variant="outline" className="text-xs mt-1">
@@ -795,10 +795,56 @@ const AdminDashboard = () => {
           </Card>
         </div>
 
-        
+        {/* At-Home Catalog Management Section */}
+        <div className="mb-12">
+          <h2 className="text-2xl font-serif font-bold text-[#4e342e] mb-6">At-Home Catalog Management</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <Card className="border-0 shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden group">
+              <div className="p-1 bg-gradient-to-r from-[#4e342e] to-[#6d4c41]"></div>
+              <CardContent className="p-8">
+                <div className="flex items-start justify-between mb-6">
+                  <div className="w-16 h-16 bg-[#4e342e]/10 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
+                    <Scissors className="w-8 h-8 text-[#4e342e]" />
+                  </div>
+                  <Badge className="bg-green-100 text-green-800">New Flow</Badge>
+                </div>
+                <h3 className="text-2xl font-serif font-bold text-[#4e342e] mb-3">Service Master Catalog</h3>
+                <p className="text-[#6d4c41] mb-6">
+                  Manage the official list of at-home services. View vendor references, set platform prices, and standardize descriptions.
+                </p>
+                <Link to="/admin/at-home-services" className="w-full block">
+                  <Button className="w-full bg-[#4e342e] hover:bg-[#3b2c26] text-white py-6 rounded-xl font-bold group">
+                    Manage Master Services
+                    <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                  </Button>
+                </Link>
+              </CardContent>
+            </Card>
 
-    
-    
+            <Card className="border-0 shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden group">
+              <div className="p-1 bg-gradient-to-r from-[#6d4c41] to-[#4e342e]"></div>
+              <CardContent className="p-8">
+                <div className="flex items-start justify-between mb-6">
+                  <div className="w-16 h-16 bg-[#4e342e]/10 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
+                    <Package className="w-8 h-8 text-[#4e342e]" />
+                  </div>
+                  <Badge className="bg-green-100 text-green-800">New Flow</Badge>
+                </div>
+                <h3 className="text-2xl font-serif font-bold text-[#4e342e] mb-3">Product Master Catalog</h3>
+                <p className="text-[#6d4c41] mb-6">
+                  Curate products that beauticians use or sell during at-home visits. Standardize pricing and categories.
+                </p>
+                <Link to="/admin/at-home-products" className="w-full block">
+                  <Button className="w-full bg-white border-2 border-[#4e342e] text-[#4e342e] hover:bg-[#4e342e] hover:text-white py-6 rounded-xl font-bold group">
+                    Manage Master Products
+                    <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                  </Button>
+                </Link>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+
       </div>
     </DashboardLayout>
   );

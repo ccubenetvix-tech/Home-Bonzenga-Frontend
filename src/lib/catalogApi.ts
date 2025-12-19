@@ -188,6 +188,38 @@ export async function fetchCatalogServices(
 ): Promise<CatalogService[]> {
   ensureNotAborted(options.signal);
 
+  // If it's an at-home service request, use the specific at-home API
+  if (params.isAtHome) {
+    console.log('🏠 Fetching AT-HOME services from dedicated API...');
+    const response = await fetch(getBackendApiUrl('/customer/athome/services'), {
+      signal: options.signal,
+      headers: {
+        'Content-Type': 'application/json',
+        ...authHeaders(),
+      },
+    });
+
+    if (response.ok) {
+      const result = await response.json();
+      if (result.success && result.data) {
+        return result.data.map((item: any) => ({
+          id: item.id,
+          slug: item.id,
+          name: item.name,
+          description: item.description ?? null,
+          duration: item.duration_minutes ?? 60,
+          customerPrice: Number(item.price ?? 0),
+          vendorPayout: Number(item.price ?? 0), // Defaulting for now
+          category: item.category ?? null,
+          icon: null,
+          allowsProducts: true, // Master catalog items typically allow products
+          isActive: Boolean(item.is_active ?? true),
+          products: [],
+        }));
+      }
+    }
+  }
+
   try {
     // Try Supabase first (direct access)
     console.log('📡 Fetching catalog services from Supabase...');
@@ -348,6 +380,37 @@ export async function fetchCatalogProducts(
   ensureNotAborted(options.signal);
 
   try {
+    // Check if we should fetch from at-home products API
+    const isAtHomeContext = window.location.pathname.includes('at-home');
+    if (isAtHomeContext) {
+      console.log('🏠 Fetching AT-HOME products from dedicated API...');
+      const response = await fetch(getBackendApiUrl('/customer/athome/products'), {
+        signal: options.signal,
+        headers: {
+          'Content-Type': 'application/json',
+          ...authHeaders(),
+        },
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        if (result.success && result.data) {
+          return result.data.map((item: any) => ({
+            id: item.id,
+            slug: item.id,
+            name: item.name,
+            description: item.description ?? null,
+            category: item.category ?? null,
+            image: item.image_url ?? null,
+            customerPrice: Number(item.price ?? 0),
+            vendorPayout: Number(item.price ?? 0),
+            sku: null,
+            isActive: Boolean(item.is_active ?? true),
+          }));
+        }
+      }
+    }
+
     // Try Supabase first (direct access)
     console.log('📡 Fetching catalog products from Supabase...');
 

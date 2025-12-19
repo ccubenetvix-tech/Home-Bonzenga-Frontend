@@ -1,450 +1,378 @@
 import React, { useState, useEffect } from 'react';
-import { useSupabaseAuth } from "@/contexts/SupabaseAuthContext";
+import { adminApi } from '@/lib/adminApi';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import DashboardLayout from '@/components/DashboardLayout';
-import { 
-  Scissors,
+import {
+  Loader2,
   Search,
   Plus,
-  Edit,
   Trash2,
-  Eye,
-  Loader2,
-  CheckCircle,
-  XCircle,
+  ExternalLink,
+  Scissors,
   DollarSign,
   Clock,
-  Package
+  Package,
+  CheckCircle2,
+  AlertCircle
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { supabaseCatalog, type CatalogService } from '@/lib/supabaseCatalog';
+
+interface VendorServiceReference {
+  name: string;
+  category: string;
+  price: number;
+  duration_minutes: number;
+  vendor_name: string;
+}
+
+interface AdminService {
+  id: string;
+  name: string;
+  description: string;
+  category: string;
+  price: number;
+  duration_minutes: number;
+  image_url: string;
+  is_active: boolean;
+}
 
 const AtHomeServicesPage = () => {
-  const { user } = useSupabaseAuth();
-  const [services, setServices] = useState<CatalogService[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState('all');
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [editingService, setEditingService] = useState<CatalogService | null>(null);
+  // Vendor Reference State
+  const [vendorServices, setVendorServices] = useState<VendorServiceReference[]>([]);
+  const [refSearch, setRefSearch] = useState('');
+  const [loadingRef, setLoadingRef] = useState(true);
+
+  // Admin Catalog State
+  const [adminServices, setAdminServices] = useState<AdminService[]>([]);
+  const [loadingAdmin, setLoadingAdmin] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
+
+  // Form State
   const [formData, setFormData] = useState({
     name: '',
     description: '',
-    duration: 60,
-    customerPrice: 0,
-    vendorPayout: 0,
     category: '',
-    icon: '',
-    allowsProducts: false,
-    isActive: true
+    price: '',
+    duration_minutes: '60',
+    image_url: '',
+    is_active: true
   });
 
   useEffect(() => {
-    fetchServices();
+    fetchVendorReference();
+    fetchAdminCatalog();
   }, []);
 
-  const fetchServices = async () => {
+  const fetchVendorReference = async () => {
     try {
-      setLoading(true);
-      const result = await supabaseCatalog.getServices({ showInactive: true });
-      if (result.success && result.data) {
-        setServices(result.data);
+      setLoadingRef(true);
+      const response = await adminApi.get<any>('/admin/vendor-catalog/services');
+      if (response.success && response.data) {
+        setVendorServices(response.data);
       } else {
-        throw new Error(result.error || 'Failed to fetch services');
+        console.error('Error fetching vendor reference:', response.message);
+        toast.error(response.message || 'Failed to load vendor service references');
       }
-    } catch (error: any) {
-      console.error('Error fetching services:', error);
-      toast.error(error.message || 'Failed to load services');
-      setServices([]);
+    } catch (error) {
+      console.error('Error fetching vendor reference:', error);
+      toast.error('Failed to load vendor service references');
     } finally {
-      setLoading(false);
+      setLoadingRef(false);
     }
   };
 
-  const handleAdd = () => {
-    setEditingService(null);
-    setFormData({
-      name: '',
-      description: '',
-      duration: 60,
-      customerPrice: 0,
-      vendorPayout: 0,
-      category: '',
-      icon: '',
-      allowsProducts: false,
-      isActive: true
-    });
-    setIsDialogOpen(true);
+  const fetchAdminCatalog = async () => {
+    try {
+      setLoadingAdmin(true);
+      const response = await adminApi.get<any>('/admin/athome/services');
+      if (response.success && response.data && response.data.success) {
+        setAdminServices(response.data.data);
+      }
+    } catch (error) {
+      console.error('Error fetching admin catalog:', error);
+    } finally {
+      setLoadingAdmin(false);
+    }
   };
 
-  const handleEdit = (service: CatalogService) => {
-    setEditingService(service);
-    setFormData({
-      name: service.name,
-      description: service.description || '',
-      duration: service.duration,
-      customerPrice: service.customerPrice,
-      vendorPayout: service.vendorPayout,
-      category: service.category || '',
-      icon: service.icon || '',
-      allowsProducts: service.allowsProducts,
-      isActive: service.isActive
-    });
-    setIsDialogOpen(true);
-  };
-
-  const handleSave = async () => {
-    if (!formData.name || !formData.customerPrice || !formData.vendorPayout) {
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!formData.name || !formData.price || !formData.category) {
       toast.error('Please fill in all required fields');
       return;
     }
 
-    if (formData.vendorPayout > formData.customerPrice) {
-      toast.error('Vendor payout cannot exceed customer price');
-      return;
-    }
-
     try {
-      if (editingService) {
-        const result = await supabaseCatalog.updateService(editingService.id, {
-          name: formData.name,
-          description: formData.description || null,
-          duration: formData.duration,
-          customerPrice: formData.customerPrice,
-          vendorPayout: formData.vendorPayout,
-          category: formData.category || null,
-          icon: formData.icon || null,
-          allowsProducts: formData.allowsProducts,
-          isActive: formData.isActive
+      setSubmitting(true);
+      const response = await adminApi.post<any>('/admin/athome/services', formData);
+      if (response.success && response.data && response.data.success) {
+        toast.success('Service added to Master Catalog');
+        setFormData({
+          name: '',
+          description: '',
+          category: '',
+          price: '',
+          duration_minutes: '60',
+          image_url: '',
+          is_active: true
         });
-        if (result.success) {
-          toast.success('Service updated successfully');
-          setIsDialogOpen(false);
-          fetchServices();
-        } else {
-          throw new Error(result.error || 'Failed to update service');
-        }
+        fetchAdminCatalog();
       } else {
-        const result = await supabaseCatalog.createService(formData);
-        if (result.success) {
-          toast.success('Service created successfully');
-          setIsDialogOpen(false);
-          fetchServices();
-        } else {
-          throw new Error(result.error || 'Failed to create service');
-        }
+        toast.error(response.message || response.data?.message || 'Failed to add service');
       }
     } catch (error: any) {
-      console.error('Error saving service:', error);
-      toast.error(error.message || 'Failed to save service');
+      console.error('Error adding service:', error);
+      toast.error('Failed to add service');
+    } finally {
+      setSubmitting(false);
     }
   };
 
-  const handleDelete = async (id: string) => {
-    if (!window.confirm('Are you sure you want to delete this service?')) {
-      return;
-    }
+  const filteredRef = vendorServices.filter(s =>
+    s.name.toLowerCase().includes(refSearch.toLowerCase()) ||
+    s.vendor_name.toLowerCase().includes(refSearch.toLowerCase()) ||
+    s.category.toLowerCase().includes(refSearch.toLowerCase())
+  );
 
-    try {
-      const result = await supabaseCatalog.deleteService(id);
-      if (result.success) {
-        toast.success('Service deleted successfully');
-        fetchServices();
-      } else {
-        throw new Error(result.error || 'Failed to delete service');
-      }
-    } catch (error: any) {
-      console.error('Error deleting service:', error);
-      toast.error(error.message || 'Failed to delete service');
-    }
-  };
-
-  const handleToggleStatus = async (service: CatalogService) => {
-    try {
-      const result = await supabaseCatalog.updateService(service.id, { isActive: !service.isActive });
-      if (result.success) {
-        toast.success(`Service ${!service.isActive ? 'activated' : 'deactivated'}`);
-        fetchServices();
-      } else {
-        throw new Error(result.error || 'Failed to update service status');
-      }
-    } catch (error: any) {
-      console.error('Error updating service status:', error);
-      toast.error(error.message || 'Failed to update service status');
-    }
-  };
-
-  const filteredServices = services.filter(service => {
-    const matchesSearch = service.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (service.description || '').toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus = statusFilter === 'all' || 
-      (statusFilter === 'active' && service.isActive) ||
-      (statusFilter === 'inactive' && !service.isActive);
-    return matchesSearch && matchesStatus;
-  });
-
-  const categories = ['Hair', 'Skin', 'Makeup', 'Nail', 'General'];
+  const categories = ['Hair Styling', 'Skin Care', 'Makeup', 'Nail Care', 'Massage', 'Other'];
 
   return (
     <DashboardLayout>
-      <div className="container mx-auto py-8 px-4">
-        <div className="mb-8">
-          <h1 className="text-3xl font-serif font-bold text-[#4e342e] mb-2">
-            At-Home Services Management
+      <div className="container mx-auto py-8 px-4 h-full flex flex-col">
+        <div className="mb-6">
+          <h1 className="text-3xl font-serif font-bold text-[#4e342e]">
+            At-Home Services - Master Catalog
           </h1>
-          <p className="text-[#6d4c41]">Manage catalog services for at-home bookings</p>
+          <p className="text-[#6d4c41]">Manage the official list of services available for at-home booking.</p>
         </div>
 
-        {/* Filters and Actions */}
-        <Card className="mb-6 border-0 shadow-lg">
-          <CardContent className="p-4">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-[#6d4c41] w-5 h-5" />
-                <Input
-                  placeholder="Search services..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
-              <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Filter by status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Status</SelectItem>
-                  <SelectItem value="active">Active</SelectItem>
-                  <SelectItem value="inactive">Inactive</SelectItem>
-                </SelectContent>
-              </Select>
-              <Button
-                onClick={handleAdd}
-                className="bg-[#4e342e] hover:bg-[#3b2c26] text-white"
-              >
-                <Plus className="w-4 h-4 mr-2" />
-                Add New Service
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Services List */}
-        {loading ? (
-          <div className="flex items-center justify-center py-12">
-            <Loader2 className="w-8 h-8 animate-spin text-[#4e342e]" />
-          </div>
-        ) : filteredServices.length === 0 ? (
-          <Card className="border-0 shadow-lg">
-            <CardContent className="p-12 text-center">
-              <Scissors className="w-16 h-16 text-[#6d4c41] mx-auto mb-4" />
-              <p className="text-xl font-semibold text-[#4e342e] mb-2">No services found</p>
-              <p className="text-[#6d4c41]">Create your first at-home service to get started</p>
-            </CardContent>
-          </Card>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredServices.map((service) => (
-              <Card key={service.id} className="border-0 shadow-lg hover:shadow-xl transition-shadow">
-                <CardHeader>
-                  <div className="flex items-start justify-between">
-                    <CardTitle className="text-lg font-serif text-[#4e342e]">
-                      {service.name}
-                    </CardTitle>
-                    <Badge variant={service.isActive ? "default" : "secondary"}>
-                      {service.isActive ? 'Active' : 'Inactive'}
-                    </Badge>
-                  </div>
-                  {service.category && (
-                    <Badge variant="outline" className="mt-2">
-                      {service.category}
-                    </Badge>
-                  )}
-                </CardHeader>
-                <CardContent>
-                  <p className="text-sm text-[#6d4c41] mb-4 line-clamp-2">
-                    {service.description || 'No description'}
-                  </p>
-                  
-                  <div className="space-y-2 mb-4">
-                    <div className="flex items-center gap-2 text-sm text-[#6d4c41]">
-                      <Clock className="w-4 h-4" />
-                      <span>{service.duration} minutes</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-sm text-[#6d4c41]">
-                      <DollarSign className="w-4 h-4" />
-                      <span>Customer: {service.customerPrice.toLocaleString()} CDF</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-sm text-[#6d4c41]">
-                      <DollarSign className="w-4 h-4" />
-                      <span>Vendor: {service.vendorPayout.toLocaleString()} CDF</span>
-                    </div>
-                    {service.allowsProducts && (
-                      <div className="flex items-center gap-2 text-sm text-[#6d4c41]">
-                        <Package className="w-4 h-4" />
-                        <span>Allows Products</span>
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="flex gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleEdit(service)}
-                      className="flex-1"
-                    >
-                      <Edit className="w-4 h-4 mr-1" />
-                      Edit
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleToggleStatus(service)}
-                      className="flex-1"
-                    >
-                      {service.isActive ? (
-                        <>
-                          <XCircle className="w-4 h-4 mr-1" />
-                          Deactivate
-                        </>
-                      ) : (
-                        <>
-                          <CheckCircle className="w-4 h-4 mr-1" />
-                          Activate
-                        </>
-                      )}
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleDelete(service.id)}
-                      className="text-red-600 hover:text-red-700"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        )}
-
-        {/* Add/Edit Dialog */}
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle className="text-2xl font-serif text-[#4e342e]">
-                {editingService ? 'Edit Service' : 'Add New Service'}
-              </DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4">
-              <div>
-                <Label htmlFor="name" className="text-[#4e342e]">Service Name *</Label>
-                <Input
-                  id="name"
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  placeholder="e.g., Professional Hair Styling"
-                />
-              </div>
-              <div>
-                <Label htmlFor="description" className="text-[#4e342e]">Description</Label>
-                <Textarea
-                  id="description"
-                  value={formData.description}
-                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  placeholder="Service description..."
-                  rows={3}
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="duration" className="text-[#4e342e]">Duration (minutes) *</Label>
+        <div className="flex flex-col lg:flex-row gap-8 flex-grow">
+          {/* LEFT PANEL: Vendor Reference (READ ONLY) */}
+          <div className="lg:w-1/2 flex flex-col">
+            <Card className="border-0 shadow-xl bg-white/50 backdrop-blur-sm flex-grow">
+              <CardHeader className="border-b border-[#f8d7da]/30">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-xl font-serif text-[#4e342e] flex items-center gap-2">
+                    <AlertCircle className="w-5 h-5 text-[#6d4c41]" />
+                    Vendor Services Reference
+                  </CardTitle>
+                  <Badge variant="outline" className="bg-[#fdf6f0] text-[#6d4c41]">READ ONLY</Badge>
+                </div>
+                <div className="relative mt-4">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#6d4c41]" />
                   <Input
-                    id="duration"
-                    type="number"
-                    value={formData.duration}
-                    onChange={(e) => setFormData({ ...formData, duration: parseInt(e.target.value) || 60 })}
+                    placeholder="Search vendor services..."
+                    className="pl-10 bg-white"
+                    value={refSearch}
+                    onChange={(e) => setRefSearch(e.target.value)}
                   />
                 </div>
-                <div>
-                  <Label htmlFor="category" className="text-[#4e342e]">Category</Label>
-                  <Select value={formData.category} onValueChange={(value) => setFormData({ ...formData, category: value })}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select category" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {categories.map(cat => (
-                        <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+              </CardHeader>
+              <CardContent className="p-0 overflow-auto max-h-[600px]">
+                {loadingRef ? (
+                  <div className="flex items-center justify-center p-12">
+                    <Loader2 className="w-8 h-8 animate-spin text-[#4e342e]" />
+                  </div>
+                ) : (
+                  <table className="w-full text-left">
+                    <thead className="bg-[#fdf6f0] sticky top-0 z-10">
+                      <tr>
+                        <th className="px-4 py-3 text-sm font-bold text-[#4e342e]">Name</th>
+                        <th className="px-4 py-3 text-sm font-bold text-[#4e342e]">Price</th>
+                        <th className="px-4 py-3 text-sm font-bold text-[#4e342e]">Vendor</th>
+                        <th className="px-4 py-3 text-sm font-bold text-[#4e342e] text-right">Action</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-[#f8d7da]/20">
+                      {filteredRef.map((s, idx) => (
+                        <tr key={idx} className="hover:bg-white/40 transition-colors group">
+                          <td className="px-4 py-3">
+                            <div className="font-medium text-[#4e342e]">{s.name}</div>
+                            <div className="text-xs text-[#6d4c41]">{s.category}</div>
+                          </td>
+                          <td className="px-4 py-3 text-[#4e342e] font-serif">
+                            {s.price.toLocaleString()} CDF
+                          </td>
+                          <td className="px-4 py-3">
+                            <div className="text-sm font-medium text-[#6d4c41]">{s.vendor_name}</div>
+                            <div className="text-xs text-[#8d6e63]">{s.duration_minutes} min</div>
+                          </td>
+                          <td className="px-4 py-3 text-right">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="opacity-0 group-hover:opacity-100 transition-opacity"
+                              onClick={() => {
+                                setFormData({
+                                  ...formData,
+                                  name: s.name,
+                                  category: s.category || '',
+                                  price: s.price.toString(),
+                                  duration_minutes: s.duration_minutes.toString()
+                                });
+                                toast.info('Copied details to form');
+                              }}
+                            >
+                              <Plus className="w-4 h-4 mr-1" /> Use
+                            </Button>
+                          </td>
+                        </tr>
                       ))}
-                    </SelectContent>
-                  </Select>
+                      {filteredRef.length === 0 && (
+                        <tr>
+                          <td colSpan={4} className="px-4 py-12 text-center text-[#6d4c41]">
+                            No vendor services found.
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* RIGHT PANEL: Admin Form (WRITE) */}
+          <div className="lg:w-1/2 flex flex-col gap-6">
+            <Card className="border-0 shadow-xl bg-white overflow-hidden">
+              <CardHeader className="bg-gradient-to-r from-[#4e342e] to-[#6d4c41] text-white">
+                <CardTitle className="text-xl font-serif font-bold">Add New Master Service</CardTitle>
+                <p className="text-[#f8d7da] text-sm">Create a standardized service for the at-home platform.</p>
+              </CardHeader>
+              <CardContent className="p-6">
+                <form onSubmit={handleSubmit} className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2 col-span-2">
+                      <Label htmlFor="name">Service Name *</Label>
+                      <Input
+                        id="name"
+                        value={formData.name}
+                        onChange={e => setFormData({ ...formData, name: e.target.value })}
+                        placeholder="e.g. Luxury Bridal Hair Styling"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="category">Category *</Label>
+                      <Select
+                        value={formData.category}
+                        onValueChange={v => setFormData({ ...formData, category: v })}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select Category" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {categories.map(c => (
+                            <SelectItem key={c} value={c}>{c}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="price">Platform Price (CDF) *</Label>
+                      <Input
+                        id="price"
+                        type="number"
+                        value={formData.price}
+                        onChange={e => setFormData({ ...formData, price: e.target.value })}
+                        placeholder="0"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="duration">Duration (minutes)</Label>
+                      <Input
+                        id="duration"
+                        type="number"
+                        value={formData.duration_minutes}
+                        onChange={e => setFormData({ ...formData, duration_minutes: e.target.value })}
+                        placeholder="60"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="image">Image URL</Label>
+                      <Input
+                        id="image"
+                        value={formData.image_url}
+                        onChange={e => setFormData({ ...formData, image_url: e.target.value })}
+                        placeholder="https://..."
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="desc">Description</Label>
+                    <Textarea
+                      id="desc"
+                      value={formData.description}
+                      onChange={e => setFormData({ ...formData, description: e.target.value })}
+                      placeholder="Explain the service quality and what's included..."
+                      rows={3}
+                    />
+                  </div>
+                  <div className="flex items-center space-x-2 pt-2">
+                    <input
+                      type="checkbox"
+                      id="active"
+                      checked={formData.is_active}
+                      onChange={e => setFormData({ ...formData, is_active: e.target.checked })}
+                      className="w-4 h-4 accent-[#4e342e]"
+                    />
+                    <Label htmlFor="active" className="cursor-pointer">Active and Visible to Customers</Label>
+                  </div>
+                  <Button
+                    type="submit"
+                    className="w-full bg-[#4e342e] hover:bg-[#3b2c26] text-white py-6 text-lg font-bold shadow-lg"
+                    disabled={submitting}
+                  >
+                    {submitting ? <Loader2 className="w-5 h-5 animate-spin mr-2" /> : <Plus className="w-5 h-5 mr-2" />}
+                    Add to Platform Catalog
+                  </Button>
+                </form>
+              </CardContent>
+            </Card>
+
+            {/* LIST OF EXISTING MASTER SERVICES (Visual only for verification) */}
+            <Card className="border-0 shadow-lg bg-[#fdf6f0]/50 flex-grow">
+              <CardHeader className="py-3 px-4 flex flex-row items-center justify-between border-b border-[#f8d7da]/20">
+                <CardTitle className="text-sm font-bold text-[#4e342e]">Live Master Catalog</CardTitle>
+                <div className="text-xs text-[#6d4c41] font-medium">{adminServices.length} Services</div>
+              </CardHeader>
+              <CardContent className="p-0 overflow-auto max-h-[250px]">
+                <div className="divide-y divide-[#f8d7da]/10">
+                  {adminServices.map(s => (
+                    <div key={s.id} className="p-3 flex items-center justify-between hover:bg-white/40">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-full bg-[#f8d7da]/30 flex items-center justify-center overflow-hidden">
+                          {s.image_url ? (
+                            <img src={s.image_url} alt="" className="w-full h-full object-cover" />
+                          ) : (
+                            <Scissors className="w-5 h-5 text-[#4e342e]" />
+                          )}
+                        </div>
+                        <div>
+                          <p className="text-sm font-bold text-[#4e342e]">{s.name}</p>
+                          <p className="text-[10px] text-[#6d4c41] uppercase tracking-wider">{s.category}</p>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-sm font-serif font-bold text-[#4e342e]">{s.price.toLocaleString()} CDF</p>
+                        <Badge variant={s.is_active ? "default" : "secondary"} className="text-[10px] py-0">
+                          {s.is_active ? 'Active' : 'Hidden'}
+                        </Badge>
+                      </div>
+                    </div>
+                  ))}
+                  {adminServices.length === 0 && !loadingAdmin && (
+                    <div className="p-8 text-center text-xs text-[#6d4c41]">Catalog is empty.</div>
+                  )}
                 </div>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="customerPrice" className="text-[#4e342e]">Customer Price (CDF) *</Label>
-                  <Input
-                    id="customerPrice"
-                    type="number"
-                    value={formData.customerPrice}
-                    onChange={(e) => setFormData({ ...formData, customerPrice: parseFloat(e.target.value) || 0 })}
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="vendorPayout" className="text-[#4e342e]">Vendor Payout (CDF) *</Label>
-                  <Input
-                    id="vendorPayout"
-                    type="number"
-                    value={formData.vendorPayout}
-                    onChange={(e) => setFormData({ ...formData, vendorPayout: parseFloat(e.target.value) || 0 })}
-                  />
-                </div>
-              </div>
-              <div className="flex items-center gap-4">
-                <div className="flex items-center space-x-2">
-                  <input
-                    type="checkbox"
-                    id="allowsProducts"
-                    checked={formData.allowsProducts}
-                    onChange={(e) => setFormData({ ...formData, allowsProducts: e.target.checked })}
-                    className="w-4 h-4"
-                  />
-                  <Label htmlFor="allowsProducts" className="text-[#4e342e]">Allows Products</Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <input
-                    type="checkbox"
-                    id="isActive"
-                    checked={formData.isActive}
-                    onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
-                    className="w-4 h-4"
-                  />
-                  <Label htmlFor="isActive" className="text-[#4e342e]">Active</Label>
-                </div>
-              </div>
-            </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
-                Cancel
-              </Button>
-              <Button
-                onClick={handleSave}
-                className="bg-[#4e342e] hover:bg-[#3b2c26] text-white"
-              >
-                {editingService ? 'Update' : 'Create'} Service
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
       </div>
     </DashboardLayout>
   );
@@ -452,3 +380,15 @@ const AtHomeServicesPage = () => {
 
 export default AtHomeServicesPage;
 
+function Badge({ children, variant = "default", className = "" }: { children: React.ReactNode, variant?: "default" | "secondary" | "outline", className?: string }) {
+  const styles = {
+    default: "bg-[#4e342e] text-white",
+    secondary: "bg-[#f8d7da] text-[#4e342e]",
+    outline: "border border-[#4e342e] text-[#4e342e]"
+  };
+  return (
+    <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${styles[variant]} ${className}`}>
+      {children}
+    </span>
+  );
+}

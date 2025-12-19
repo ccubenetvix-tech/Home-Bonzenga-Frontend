@@ -68,6 +68,11 @@ import AuthTest from "@/pages/AuthTest";
 import Index from "@/pages/Index";
 import NotFound from "@/pages/NotFound";
 import SearchPage1 from "@/pages/SearchPage1";
+import AtHomeIntroPage from "@/pages/customer/AtHomeIntroPage";
+import SelectServiceOption from "@/pages/SelectServiceOption";
+import WithProductsBooking from "@/pages/WithProductsBooking";
+import WithoutProductsBooking from "@/pages/WithoutProductsBooking";
+import AtHomeSelectionPage from "@/pages/customer/AtHomeSelectionPage";
 import OAuthCallbackPage from "@/pages/auth/OAuthCallbackPage";
 import EmailConfirmationCallback from "@/pages/auth/EmailConfirmationCallback";
 import SupabaseTest from "@/pages/SupabaseTest";
@@ -79,9 +84,6 @@ import Careers from "./pages/footer_pages/Careers";
 import TermsAndConditions from "./pages/footer_pages/TermsAndConditions";
 import HelpCenter from "./pages/footer_pages/HelpCenter";
 import FAQ from "./pages/footer_pages/FAQ";
-import SelectServiceOption from "./pages/SelectServiceOption";
-import WithProductsBooking from "./pages/WithProductsBooking";
-import WithoutProductsBooking from "./pages/WithoutProductsBooking";
 import Checkout from "./pages/Checkout";
 import ManagerRequests from "./pages/ManagerRequests";
 
@@ -149,7 +151,7 @@ const App = () => {
                         <Route path="/auth/confirm-email" element={<EmailConfirmationCallback />} />
                         <Route path="/auth/verify" element={<EmailConfirmationCallback />} />
                         <Route path="/verify-email" element={<VendorEmailVerificationPage />} />
-                        <Route path="/at-home-services" element={<AtHomeServicesPage />} />
+                        <Route path="/at-home-services" element={<AtHomeIntroPage />} />
                         <Route path="/salon-visit" element={<SalonVisitPage />} />
                         <Route path="/vendor/:id" element={<VendorDetailsPage />} />
                         <Route path="/booking/checkout" element={<BookingCheckoutPage />} />
@@ -163,6 +165,7 @@ const App = () => {
                         <Route path="/faq" element={<FAQ />} />
 
                         {/* At-Home Service Booking Routes */}
+                        <Route path="/customer/at-home" element={<AtHomeIntroPage />} />
                         <Route path="/customer/at-home-services/select-option" element={
                           <ProtectedRoute allowedRoles={["CUSTOMER"]}>
                             <SelectServiceOption />
@@ -176,6 +179,11 @@ const App = () => {
                         <Route path="/customer/at-home-services/without-products" element={
                           <ProtectedRoute allowedRoles={["CUSTOMER"]}>
                             <WithoutProductsBooking />
+                          </ProtectedRoute>
+                        } />
+                        <Route path="/customer/at-home/selection" element={
+                          <ProtectedRoute allowedRoles={["CUSTOMER"]}>
+                            <AtHomeSelectionPage />
                           </ProtectedRoute>
                         } />
                         <Route path="/customer/at-home-services/checkout/:serviceId" element={
@@ -226,11 +234,7 @@ const App = () => {
                         />
                         <Route
                           path="/customer/at-home-services"
-                          element={
-                            <ProtectedRoute allowedRoles={["CUSTOMER"]}>
-                              <AtHomeServicesPage />
-                            </ProtectedRoute>
-                          }
+                          element={<AtHomeIntroPage />}
                         />
                         <Route
                           path="/customer/salon-visit"
@@ -502,16 +506,15 @@ const App = () => {
                           path="/admin/at-home-services"
                           element={
                             <ProtectedRoute allowedRoles={["ADMIN"]}>
-                              <ManageAtHomeCatalog />
+                              <AdminAtHomeServicesPage />
                             </ProtectedRoute>
                           }
                         />
-                        {/* Keep old routes for backward compatibility */}
                         <Route
                           path="/admin/at-home-products"
                           element={
                             <ProtectedRoute allowedRoles={["ADMIN"]}>
-                              <ManageAtHomeCatalog />
+                              <AdminAtHomeProductsPage />
                             </ProtectedRoute>
                           }
                         />
