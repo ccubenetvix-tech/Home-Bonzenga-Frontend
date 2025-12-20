@@ -19,6 +19,7 @@ import {
     DialogHeader,
     DialogTitle,
     DialogDescription,
+    DialogFooter,
 } from "@/components/ui/dialog";
 import {
     Select,
@@ -27,7 +28,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
-import { Calendar, Clock, MapPin, User, Package, Scissors, CheckCircle, AlertCircle } from 'lucide-react';
+import { Calendar, Clock, MapPin, User, Package, Scissors, CheckCircle, AlertCircle, UserCheck, Star, Sparkles } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 
@@ -77,13 +78,11 @@ const AtHomeBookingsPage = () => {
     const [bookings, setBookings] = useState<AtHomeBooking[]>([]);
     const [loading, setLoading] = useState(true);
     const [selectedBooking, setSelectedBooking] = useState<AtHomeBooking | null>(null);
-    const [serviceVendors, setServiceVendors] = useState<EligibleVendor[]>([]);
-    const [productVendors, setProductVendors] = useState<EligibleVendor[]>([]);
+    const [beauticians, setBeauticians] = useState<any[]>([]); // New state for beauticians
     const [loadingVendors, setLoadingVendors] = useState(false);
 
     // Selection state
-    const [selectedServiceVendor, setSelectedServiceVendor] = useState<string>('');
-    const [selectedProductVendor, setSelectedProductVendor] = useState<string>('');
+    const [selectedBeautician, setSelectedBeautician] = useState<string>('');
     const [isAssigning, setIsAssigning] = useState(false);
 
     useEffect(() => {
@@ -107,34 +106,22 @@ const AtHomeBookingsPage = () => {
         }
     };
 
-    const handleManageBooking = async (booking: AtHomeBooking) => {
+    const openAssignModal = async (booking: AtHomeBooking) => {
         setSelectedBooking(booking);
         setLoadingVendors(true);
-        setSelectedServiceVendor('');
-        setSelectedProductVendor('');
-        setServiceVendors([]);
-        setProductVendors([]);
+        setSelectedBeautician('');
+        setBeauticians([]);
 
         try {
-            const response = await api.get<ApiResponse<any>>(`/manager/athome-bookings/${booking.id}/eligible-vendors`);
+            const response = await api.get<ApiResponse<any>>(`/manager/athome-bookings/${booking.id}/eligible-beauticians`);
             if (response.data.success) {
-                // Handle new split response format
-                // Using any for the data wrapper to avoid complex interfaces for now
-                const data = response.data.data;
-                if (data.serviceVendors || data.productVendors) {
-                    setServiceVendors(data.serviceVendors || []);
-                    setProductVendors(data.productVendors || []);
-                } else {
-                    // Fallback for legacy array response (though we just changed backend)
-                    setServiceVendors(data);
-                    setProductVendors(data);
-                }
+                setBeauticians(response.data.data || []);
             } else {
-                toast.error('Failed to load eligible vendors');
+                toast.error('Failed to load eligible beauticians');
             }
         } catch (error) {
             console.error(error);
-            toast.error('Error fetching vendors');
+            toast.error('Error fetching beauticians');
         } finally {
             setLoadingVendors(false);
         }
@@ -143,47 +130,29 @@ const AtHomeBookingsPage = () => {
     const handleAssign = async () => {
         if (!selectedBooking) return;
 
-        // Validation: Must select vendor for services if services exist
-        if (selectedBooking.services && selectedBooking.services.length > 0 && !selectedServiceVendor) {
-            toast.error('Please select a service vendor');
-            return;
-        }
-
-        // Validation: Must select vendor for products if products exist
-        if (selectedBooking.products && selectedBooking.products.length > 0 && !selectedProductVendor) {
-            toast.error('Please select a product vendor');
-            return;
-        }
-
-        if (!selectedServiceVendor && !selectedProductVendor) {
-            toast.error('Please select at least one vendor to confirm assignment.');
+        if (!selectedBeautician) {
+            toast.error('Please select a beautician to confirm assignment.');
             return;
         }
 
         try {
             setIsAssigning(true);
+            console.log("ASSIGNING BEAUTICIAN - DEBUG:", selectedBeautician);
 
-            console.log("ASSIGNING VENDORS - DEBUG:");
-            console.log("Booking ID:", selectedBooking.id);
-            console.log("Service Vendor ID:", selectedServiceVendor);
-            console.log("Product Vendor ID:", selectedProductVendor);
-
-            // Updated endpoint to match backend (already matches /manager/athome-bookings via router)
             const response = await api.post<ApiResponse>(`/manager/athome-bookings/${selectedBooking.id}/assign`, {
-                service_vendor_id: selectedServiceVendor,
-                product_vendor_id: selectedProductVendor
+                beautician_id: selectedBeautician
             });
 
             if (response.data.success) {
-                toast.success('Vendors assigned successfully!');
+                toast.success('Beautician assigned successfully!');
                 setSelectedBooking(null);
                 fetchBookings(); // Refresh list
             } else {
-                toast.error('Failed to assign vendors');
+                toast.error('Failed to assign beautician');
             }
         } catch (error) {
             console.error(error);
-            toast.error('Error assigning vendors');
+            toast.error('Error assigning beautician');
         } finally {
             setIsAssigning(false);
         }
@@ -299,7 +268,7 @@ const AtHomeBookingsPage = () => {
                                                     </Button>
                                                 ) : (
                                                     <Button
-                                                        onClick={() => handleManageBooking(booking)}
+                                                        onClick={() => openAssignModal(booking)}
                                                         className="bg-[#4e342e] hover:bg-[#3b2c26] text-white"
                                                         size="sm"
                                                     >
@@ -319,190 +288,105 @@ const AtHomeBookingsPage = () => {
                 <Dialog open={!!selectedBooking} onOpenChange={(open) => !open && setSelectedBooking(null)}>
                     <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
                         <DialogHeader>
-                            <DialogTitle>Assign Vendor to Booking</DialogTitle>
+                            <DialogTitle>Assign Beautician</DialogTitle>
                             <DialogDescription>
-                                Select the most suitable service and product vendors for this request based on location and offerings.
+                                Select the best fit beautician for this booking based on skills and availability.
                             </DialogDescription>
                         </DialogHeader>
 
                         {selectedBooking && (
                             <div className="space-y-6">
-                                {/* Booking Details Summary */}
-                                <div className="grid grid-cols-2 gap-4 p-4 bg-muted/30 rounded-lg">
-                                    <div>
-                                        <h4 className="font-semibold text-sm text-[#4e342e] flex items-center gap-2">
-                                            <User className="w-4 h-4" /> Customer
-                                        </h4>
-                                        <p className="text-sm mt-1">{selectedBooking.customer?.first_name} {selectedBooking.customer?.last_name}</p>
-                                        <p className="text-xs text-muted-foreground">{selectedBooking.customer?.phone}</p>
-                                    </div>
-                                    <div>
-                                        <h4 className="font-semibold text-sm text-[#4e342e] flex items-center gap-2">
-                                            <MapPin className="w-4 h-4" /> Location
-                                        </h4>
-                                        <p className="text-sm mt-1">{selectedBooking.address}</p>
+                                {/* Booking Summary Section */}
+                                <div className="flex gap-4 p-4 bg-muted/50 rounded-lg">
+                                    <div className="space-y-1">
+                                        <h4 className="font-semibold text-sm text-[#4e342e]">Booking Details</h4>
+                                        <div className="text-sm text-muted-foreground grid grid-cols-1 gap-1">
+                                            <div className="flex items-center gap-2">
+                                                <User className="w-3 h-3" />
+                                                {selectedBooking.customer?.first_name} {selectedBooking.customer?.last_name} ({selectedBooking.customer?.phone})
+                                            </div>
+                                            <div className="flex items-center gap-2">
+                                                <Calendar className="w-3 h-3" />
+                                                {selectedBooking.slot ? new Date(selectedBooking.slot).toLocaleDateString() : 'N/A'}
+                                            </div>
+                                            <div className="flex items-center gap-2">
+                                                <MapPin className="w-3 h-3" />
+                                                {formatAddress(selectedBooking.address)}
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
 
-                                {/* Services Assignment */}
-                                {selectedBooking.services.length > 0 && (
-                                    <div className="border rounded-lg p-4">
-                                        <h3 className="font-semibold text-lg mb-3 flex items-center gap-2">
-                                            <Scissors className="w-5 h-5" /> Service Assignment
-                                        </h3>
-                                        <div className="mb-4 space-y-2">
-                                            {selectedBooking.services.map((s, idx) => (
-                                                <div key={idx} className="flex justify-between items-center p-3 bg-card border rounded-md shadow-sm mb-2">
-                                                    <div className="flex items-center gap-2">
-                                                        <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center text-primary">
-                                                            <Scissors className="w-4 h-4" />
+                                {/* Beautician Selection */}
+                                <div className="space-y-4">
+                                    <h3 className="font-semibold flex items-center gap-2">
+                                        <UserCheck className="w-4 h-4 text-primary" />
+                                        Available Beauticians
+                                    </h3>
+
+                                    {loadingVendors ? (
+                                        <div className="py-8 text-center text-muted-foreground">Finding matching beauticians...</div>
+                                    ) : (
+                                        <div className="grid gap-3">
+                                            {beauticians.map((b) => (
+                                                <div
+                                                    key={b.id}
+                                                    className={`
+                                                        relative flex items-center justify-between p-4 rounded-lg border-2 cursor-pointer transition-all
+                                                        ${selectedBeautician === b.id ? 'border-[#4e342e] bg-[#4e342e]/5' : 'border-transparent bg-white shadow-sm hover:border-[#4e342e]/30'}
+                                                    `}
+                                                    onClick={() => setSelectedBeautician(b.id)}
+                                                >
+                                                    <div className="flex items-center gap-4">
+                                                        <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold ${b.score > 0 ? 'bg-green-100 text-green-700' : 'bg-gray-100'}`}>
+                                                            {b.name.charAt(0)}
                                                         </div>
                                                         <div>
-                                                            <p className="font-medium text-sm leading-none">{s.master_service?.name || 'Service'}</p>
-                                                            <p className="text-xs text-muted-foreground mt-1">Request #{idx + 1}</p>
+                                                            <div className="font-bold text-[#4e342e] flex items-center gap-2">
+                                                                {b.name}
+                                                                <Badge variant={b.score > 0 ? 'default' : 'secondary'} className={b.score > 0 ? 'bg-green-600' : ''}>
+                                                                    {b.matchType}
+                                                                </Badge>
+                                                            </div>
+                                                            <div className="text-sm text-muted-foreground flex items-center gap-4">
+                                                                <span className="flex items-center gap-1">
+                                                                    <Star className="w-3 h-3" /> {b.expert_level}
+                                                                </span>
+                                                                <span className="flex items-center gap-1">
+                                                                    <Clock className="w-3 h-3" /> {b.skills || 'General'}
+                                                                </span>
+                                                            </div>
                                                         </div>
                                                     </div>
-                                                    <div className="text-right">
-                                                        <p className="font-semibold text-sm">{s.service_price?.toLocaleString()} CDF</p>
-                                                        <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Customer Paid</p>
-                                                    </div>
+                                                    {selectedBeautician === b.id && (
+                                                        <div className="text-[#4e342e] font-bold text-sm bg-white px-3 py-1 rounded-full shadow-sm">Selected</div>
+                                                    )}
                                                 </div>
                                             ))}
-                                        </div>
 
-                                        <div className="space-y-2">
-                                            <label className="text-sm font-medium">Select Service Vendor</label>
-                                            {serviceVendors.length > 0 && serviceVendors[0].matchType === 'fallback' && (
-                                                <div className="mb-2 p-2 bg-amber-50 border border-amber-200 rounded text-xs text-amber-800 flex items-center gap-2">
-                                                    <AlertCircle className="w-3 h-3" />
-                                                    <span>Exact service match not found. Showing all available vendors for manual assignment.</span>
+                                            {beauticians.length === 0 && (
+                                                <div className="text-center py-8 text-muted-foreground bg-gray-50 rounded-lg border border-dashed">
+                                                    No eligible beauticians found active.
+                                                    <br />
+                                                    <span className="text-xs">Please check "Admin &gt; Beauticians" to ensure you have active staff.</span>
                                                 </div>
                                             )}
-                                            <Select value={selectedServiceVendor} onValueChange={setSelectedServiceVendor}>
-                                                <SelectTrigger className="h-auto py-3">
-                                                    <SelectValue placeholder="Choose a qualified vendor..." />
-                                                </SelectTrigger>
-                                                <SelectContent className="max-h-[300px]">
-                                                    {loadingVendors ? (
-                                                        <SelectItem value="loading" disabled>Loading eligible vendors...</SelectItem>
-                                                    ) : serviceVendors.length === 0 ? (
-                                                        <SelectItem value="none" disabled>No vendors match service category</SelectItem>
-                                                    ) : (
-                                                        serviceVendors.map((vendor) => (
-                                                            <SelectItem key={vendor.id} value={vendor.id} className="py-3 border-b last:border-0 border-border/40">
-                                                                <div className="flex flex-col text-left gap-1">
-                                                                    <div className="flex items-center gap-2">
-                                                                        <span className="font-semibold text-base">{vendor.shopname}</span>
-                                                                        {vendor.matchType === 'match' && <Badge variant="secondary" className="text-[10px] h-4 px-1">Best Match</Badge>}
-                                                                    </div>
-
-                                                                    <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                                                                        <MapPin className="w-3 h-3" />
-                                                                        {vendor.location || 'Unknown Location'}
-                                                                    </div>
-
-                                                                    {vendor.inventory && (
-                                                                        <div className="mt-1 text-xs text-muted-foreground/80 pl-4 border-l-2 border-primary/20">
-                                                                            {vendor.inventory}
-                                                                        </div>
-                                                                    )}
-                                                                </div>
-                                                            </SelectItem>
-                                                        ))
-                                                    )}
-                                                </SelectContent>
-                                            </Select>
                                         </div>
-                                    </div>
-                                )}
-
-                                {/* Products Assignment */}
-                                {selectedBooking.products.length > 0 && (
-                                    <div className="border rounded-lg p-4">
-                                        <h3 className="font-semibold text-lg mb-3 flex items-center gap-2">
-                                            <Package className="w-5 h-5" /> Product Fulfillment
-                                        </h3>
-                                        <div className="mb-4 space-y-2">
-                                            {selectedBooking.products.map((p, idx) => (
-                                                <div key={idx} className="flex justify-between items-center p-3 bg-card border rounded-md shadow-sm mb-2">
-                                                    <div className="flex items-center gap-2">
-                                                        <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center text-primary">
-                                                            <Package className="w-4 h-4" />
-                                                        </div>
-                                                        <div>
-                                                            <p className="font-medium text-sm leading-none">{p.master_product?.name || 'Product'} <span className="text-muted-foreground ml-1">(x{p.quantity})</span></p>
-                                                            <p className="text-xs text-muted-foreground mt-1">Item #{idx + 1}</p>
-                                                        </div>
-                                                    </div>
-                                                    <div className="text-right">
-                                                        <p className="font-semibold text-sm">{p.product_price?.toLocaleString()} CDF</p>
-                                                        <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Customer Paid</p>
-                                                    </div>
-                                                </div>
-                                            ))}
-                                        </div>
-
-                                        <div className="space-y-2">
-                                            <label className="text-sm font-medium">Select Product Vendor</label>
-                                            {productVendors.length > 0 && productVendors[0].matchType === 'fallback' && (
-                                                <div className="mb-2 p-2 bg-amber-50 border border-amber-200 rounded text-xs text-amber-800 flex items-center gap-2">
-                                                    <AlertCircle className="w-3 h-3" />
-                                                    <span>Exact product match not found. Showing all available vendors for manual assignment.</span>
-                                                </div>
-                                            )}
-                                            <Select value={selectedProductVendor} onValueChange={setSelectedProductVendor}>
-                                                <SelectTrigger className="h-auto py-3">
-                                                    <SelectValue placeholder="Choose a product vendor..." />
-                                                </SelectTrigger>
-                                                <SelectContent className="max-h-[300px]">
-                                                    {loadingVendors ? (
-                                                        <SelectItem value="loading" disabled>Loading eligible vendors...</SelectItem>
-                                                    ) : productVendors.length === 0 ? (
-                                                        <SelectItem value="none" disabled>No vendors match product category</SelectItem>
-                                                    ) : (
-                                                        productVendors.map((vendor) => (
-                                                            <SelectItem key={`prod-${vendor.id}`} value={vendor.id} className="py-3 border-b last:border-0 border-border/40">
-                                                                <div className="flex flex-col text-left gap-1">
-                                                                    <div className="flex items-center gap-2">
-                                                                        <span className="font-semibold text-base">{vendor.shopname}</span>
-                                                                        {vendor.matchType === 'match' && <Badge variant="secondary" className="text-[10px] h-4 px-1">Best Match</Badge>}
-                                                                    </div>
-
-                                                                    <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                                                                        <MapPin className="w-3 h-3" />
-                                                                        {vendor.location || 'Unknown Location'}
-                                                                    </div>
-
-                                                                    {vendor.inventory && (
-                                                                        <div className="mt-1 text-xs text-muted-foreground/80 pl-4 border-l-2 border-primary/20">
-                                                                            {vendor.inventory}
-                                                                        </div>
-                                                                    )}
-                                                                </div>
-                                                            </SelectItem>
-                                                        ))
-                                                    )}
-                                                </SelectContent>
-                                            </Select>
-                                            <p className="text-xs text-muted-foreground mt-1">
-                                                * Often the same vendor can provide services and products if they have stock.
-                                            </p>
-                                        </div>
-                                    </div>
-                                )}
-
-                                <div className="flex justify-end pt-4 gap-2">
-                                    <Button variant="outline" onClick={() => setSelectedBooking(null)}>Cancel</Button>
-                                    <Button
-                                        className="bg-[#4e342e] hover:bg-[#3b2c26] text-white"
-                                        onClick={handleAssign}
-                                        disabled={isAssigning || loadingVendors}
-                                    >
-                                        {isAssigning ? 'Assigning...' : 'Confirm Assignment'}
-                                    </Button>
+                                    )}
                                 </div>
                             </div>
                         )}
+
+                        <DialogFooter>
+                            <Button variant="outline" onClick={() => setSelectedBooking(null)}>Cancel</Button>
+                            <Button
+                                onClick={handleAssign}
+                                disabled={isAssigning || !selectedBeautician}
+                                className="bg-[#4e342e] text-white"
+                            >
+                                {isAssigning ? 'Assigning...' : 'Confirm Assignment'}
+                            </Button>
+                        </DialogFooter>
                     </DialogContent>
                 </Dialog>
             </div>
