@@ -54,6 +54,7 @@ const RoleNavigation: React.FC<RoleNavigationProps> = ({ isMobile = false }) => 
       { path: '/admin', label: t('nav.dashboard'), icon: Settings },
       { path: '/admin/users', label: t('nav.users'), icon: Users },
       { path: '/admin/vendors', label: t('nav.vendors'), icon: Building },
+      { path: '/admin/beauticians', label: 'Beauticians', icon: UserCheck }, // Added
       { path: '/admin/at-home-services', label: 'Home Services', icon: Scissors },
       { path: '/admin/at-home-products', label: 'Home Products', icon: Package },
     ],

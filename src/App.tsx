@@ -25,7 +25,7 @@ import BookingConfirmationPage from "@/pages/customer/BookingConfirmationPage";
 import PaymentPage from "@/pages/customer/PaymentPage";
 import PaymentSuccessPage from "@/pages/customer/PaymentSuccessPage";
 import VendorDashboard from "@/pages/vendor/Dashboard";
-import VendorServicesManagement from "@/pages/vendor/ServicesManagementPage";
+// import VendorServicesManagement from "@/pages/vendor/ServicesManagementPage"; // Removed unused missing module
 import VendorAppointmentsManagement from "@/pages/vendor/AppointmentsManagementPage";
 import VendorRevenue from "@/pages/vendor/RevenuePage";
 import VendorRegistrationPage from "@/pages/auth/VendorRegistrationPage";
@@ -59,6 +59,7 @@ import AdminUsersPage from "@/pages/admin/UsersPage";
 import AdminVendorsPage from "@/pages/admin/VendorsPage";
 import AdminVendorDetailsPage from "@/pages/admin/VendorDetailsPage";
 import AdminManagersPage from "@/pages/admin/ManagersPage";
+import AdminBeauticiansPage from "@/pages/admin/AdminBeauticiansPage"; // Correct import placement
 import AtHomeBookingsPage from "@/pages/manager/AtHomeBookingsPage";
 import AtHomeAssignmentsPage from "@/pages/vendor/AtHomeAssignmentsPage";
 import AdminSettingsPage from "@/pages/admin/SettingsPage";
@@ -503,6 +504,14 @@ const App = () => {
                           element={
                             <ProtectedRoute allowedRoles={["ADMIN"]}>
                               <AdminManagersPage />
+                            </ProtectedRoute>
+                          }
+                        />
+                        <Route
+                          path="/admin/beauticians"
+                          element={
+                            <ProtectedRoute allowedRoles={["ADMIN"]}>
+                              <AdminBeauticiansPage />
                             </ProtectedRoute>
                           }
                         />
