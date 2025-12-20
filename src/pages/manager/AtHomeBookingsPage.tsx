@@ -18,6 +18,7 @@ import {
     DialogContent,
     DialogHeader,
     DialogTitle,
+    DialogDescription,
 } from "@/components/ui/dialog";
 import {
     Select,
@@ -50,21 +51,34 @@ interface AtHomeBooking {
 }
 
 interface EligibleVendor {
-    id: string; // vendor_id
+    id: string;
     shopname: string;
-    distance: number; // if available, or just mocking
-    services: any[];
-    user: {
+    distance?: number;
+    services?: any[];
+    user?: {
         first_name: string;
         last_name: string;
-    }
+    };
+    match_reason?: string;
+    // Enhanced Fields
+    ownerName?: string;
+    location?: string;
+    inventory?: string;
+    matchType?: string;
+}
+
+interface ApiResponse<T = any> {
+    success: boolean;
+    data: T;
+    message?: string;
 }
 
 const AtHomeBookingsPage = () => {
     const [bookings, setBookings] = useState<AtHomeBooking[]>([]);
     const [loading, setLoading] = useState(true);
     const [selectedBooking, setSelectedBooking] = useState<AtHomeBooking | null>(null);
-    const [eligibleVendors, setEligibleVendors] = useState<EligibleVendor[]>([]);
+    const [serviceVendors, setServiceVendors] = useState<EligibleVendor[]>([]);
+    const [productVendors, setProductVendors] = useState<EligibleVendor[]>([]);
     const [loadingVendors, setLoadingVendors] = useState(false);
 
     // Selection state
@@ -79,7 +93,7 @@ const AtHomeBookingsPage = () => {
     const fetchBookings = async () => {
         try {
             setLoading(true);
-            const response = await api.get('/manager/athome-bookings');
+            const response = await api.get<ApiResponse<AtHomeBooking[]>>('/manager/athome-bookings');
             if (response.data.success) {
                 setBookings(response.data.data);
             } else {
@@ -98,11 +112,23 @@ const AtHomeBookingsPage = () => {
         setLoadingVendors(true);
         setSelectedServiceVendor('');
         setSelectedProductVendor('');
+        setServiceVendors([]);
+        setProductVendors([]);
 
         try {
-            const response = await api.get(`/manager/athome-bookings/${booking.id}/eligible-vendors`);
+            const response = await api.get<ApiResponse<any>>(`/manager/athome-bookings/${booking.id}/eligible-vendors`);
             if (response.data.success) {
-                setEligibleVendors(response.data.data);
+                // Handle new split response format
+                // Using any for the data wrapper to avoid complex interfaces for now
+                const data = response.data.data;
+                if (data.serviceVendors || data.productVendors) {
+                    setServiceVendors(data.serviceVendors || []);
+                    setProductVendors(data.productVendors || []);
+                } else {
+                    // Fallback for legacy array response (though we just changed backend)
+                    setServiceVendors(data);
+                    setProductVendors(data);
+                }
             } else {
                 toast.error('Failed to load eligible vendors');
             }
@@ -116,20 +142,34 @@ const AtHomeBookingsPage = () => {
 
     const handleAssign = async () => {
         if (!selectedBooking) return;
-        if (!selectedServiceVendor && selectedBooking.services.length > 0) {
+
+        // Validation: Must select vendor for services if services exist
+        if (selectedBooking.services && selectedBooking.services.length > 0 && !selectedServiceVendor) {
             toast.error('Please select a service vendor');
             return;
         }
-        // Product vendor is optional if no products? Or if products exist.
-        if (!selectedProductVendor && selectedBooking.products.length > 0) {
+
+        // Validation: Must select vendor for products if products exist
+        if (selectedBooking.products && selectedBooking.products.length > 0 && !selectedProductVendor) {
             toast.error('Please select a product vendor');
+            return;
+        }
+
+        if (!selectedServiceVendor && !selectedProductVendor) {
+            toast.error('Please select at least one vendor to confirm assignment.');
             return;
         }
 
         try {
             setIsAssigning(true);
+
+            console.log("ASSIGNING VENDORS - DEBUG:");
+            console.log("Booking ID:", selectedBooking.id);
+            console.log("Service Vendor ID:", selectedServiceVendor);
+            console.log("Product Vendor ID:", selectedProductVendor);
+
             // Updated endpoint to match backend (already matches /manager/athome-bookings via router)
-            const response = await api.post(`/manager/athome-bookings/${selectedBooking.id}/assign`, {
+            const response = await api.post<ApiResponse>(`/manager/athome-bookings/${selectedBooking.id}/assign`, {
                 service_vendor_id: selectedServiceVendor,
                 product_vendor_id: selectedProductVendor
             });
@@ -183,6 +223,7 @@ const AtHomeBookingsPage = () => {
                                     <TableHead>Customer</TableHead>
                                     <TableHead>Service Slot</TableHead>
                                     <TableHead>Location</TableHead>
+                                    <TableHead>Price</TableHead>
                                     <TableHead>Requests</TableHead>
                                     <TableHead>Status</TableHead>
                                     <TableHead className="text-right">Action</TableHead>
@@ -219,16 +260,30 @@ const AtHomeBookingsPage = () => {
                                                 </div>
                                             </TableCell>
                                             <TableCell>
-                                                <div className="space-y-1">
-                                                    {booking.services.length > 0 && (
-                                                        <Badge variant="outline" className="mr-1 border-blue-200 bg-blue-50 text-blue-700">
-                                                            {booking.services.length} Services
-                                                        </Badge>
-                                                    )}
-                                                    {booking.products.length > 0 && (
-                                                        <Badge variant="outline" className="border-orange-200 bg-orange-50 text-orange-700">
-                                                            {booking.products.length} Products
-                                                        </Badge>
+                                                <div className="font-medium text-[#4e342e]">
+                                                    {booking.total_amount?.toLocaleString()} CDF
+                                                </div>
+                                            </TableCell>
+                                            <TableCell>
+                                                <div className="flex flex-col gap-1 max-w-[250px]">
+                                                    {booking.services && booking.services.length > 0 ? (
+                                                        booking.services.map((s: any, idx: number) => (
+                                                            <Badge key={`s-${idx}`} variant="secondary" className="w-fit bg-blue-50 text-blue-700 hover:bg-blue-100 border-blue-200">
+                                                                <Scissors className="w-3 h-3 mr-1" />
+                                                                {s.master_service?.name || 'Service'}
+                                                            </Badge>
+                                                        ))
+                                                    ) : null}
+                                                    {booking.products && booking.products.length > 0 ? (
+                                                        booking.products.map((p: any, idx: number) => (
+                                                            <Badge key={`p-${idx}`} variant="outline" className="w-fit bg-orange-50 text-orange-700 hover:bg-orange-100 border-orange-200">
+                                                                <Package className="w-3 h-3 mr-1" />
+                                                                {p.master_product?.name || 'Product'}
+                                                            </Badge>
+                                                        ))
+                                                    ) : null}
+                                                    {(!booking.services?.length && !booking.products?.length) && (
+                                                        <span className="text-muted-foreground text-xs italic">No items</span>
                                                     )}
                                                 </div>
                                             </TableCell>
@@ -265,6 +320,9 @@ const AtHomeBookingsPage = () => {
                     <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
                         <DialogHeader>
                             <DialogTitle>Assign Vendor to Booking</DialogTitle>
+                            <DialogDescription>
+                                Select the most suitable service and product vendors for this request based on location and offerings.
+                            </DialogDescription>
                         </DialogHeader>
 
                         {selectedBooking && (
@@ -294,29 +352,61 @@ const AtHomeBookingsPage = () => {
                                         </h3>
                                         <div className="mb-4 space-y-2">
                                             {selectedBooking.services.map((s, idx) => (
-                                                <div key={idx} className="text-sm flex justify-between bg-secondary/20 p-2 rounded">
-                                                    <span>{s.master_service?.name || 'Service'}</span>
-                                                    <span className="font-medium">{s.service_price} CDF</span>
+                                                <div key={idx} className="flex justify-between items-center p-3 bg-card border rounded-md shadow-sm mb-2">
+                                                    <div className="flex items-center gap-2">
+                                                        <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center text-primary">
+                                                            <Scissors className="w-4 h-4" />
+                                                        </div>
+                                                        <div>
+                                                            <p className="font-medium text-sm leading-none">{s.master_service?.name || 'Service'}</p>
+                                                            <p className="text-xs text-muted-foreground mt-1">Request #{idx + 1}</p>
+                                                        </div>
+                                                    </div>
+                                                    <div className="text-right">
+                                                        <p className="font-semibold text-sm">{s.service_price?.toLocaleString()} CDF</p>
+                                                        <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Customer Paid</p>
+                                                    </div>
                                                 </div>
                                             ))}
                                         </div>
 
                                         <div className="space-y-2">
                                             <label className="text-sm font-medium">Select Service Vendor</label>
+                                            {serviceVendors.length > 0 && serviceVendors[0].matchType === 'fallback' && (
+                                                <div className="mb-2 p-2 bg-amber-50 border border-amber-200 rounded text-xs text-amber-800 flex items-center gap-2">
+                                                    <AlertCircle className="w-3 h-3" />
+                                                    <span>Exact service match not found. Showing all available vendors for manual assignment.</span>
+                                                </div>
+                                            )}
                                             <Select value={selectedServiceVendor} onValueChange={setSelectedServiceVendor}>
-                                                <SelectTrigger>
+                                                <SelectTrigger className="h-auto py-3">
                                                     <SelectValue placeholder="Choose a qualified vendor..." />
                                                 </SelectTrigger>
-                                                <SelectContent>
+                                                <SelectContent className="max-h-[300px]">
                                                     {loadingVendors ? (
                                                         <SelectItem value="loading" disabled>Loading eligible vendors...</SelectItem>
-                                                    ) : eligibleVendors.length === 0 ? (
-                                                        <SelectItem value="none" disabled>No eligible vendors found</SelectItem>
+                                                    ) : serviceVendors.length === 0 ? (
+                                                        <SelectItem value="none" disabled>No vendors match service category</SelectItem>
                                                     ) : (
-                                                        eligibleVendors.map((vendor) => (
-                                                            <SelectItem key={vendor.id} value={vendor.id}>
-                                                                {vendor.shopname} ({vendor.user?.first_name})
-                                                                {/* Add distance if available */}
+                                                        serviceVendors.map((vendor) => (
+                                                            <SelectItem key={vendor.id} value={vendor.id} className="py-3 border-b last:border-0 border-border/40">
+                                                                <div className="flex flex-col text-left gap-1">
+                                                                    <div className="flex items-center gap-2">
+                                                                        <span className="font-semibold text-base">{vendor.shopname}</span>
+                                                                        {vendor.matchType === 'match' && <Badge variant="secondary" className="text-[10px] h-4 px-1">Best Match</Badge>}
+                                                                    </div>
+
+                                                                    <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                                                                        <MapPin className="w-3 h-3" />
+                                                                        {vendor.location || 'Unknown Location'}
+                                                                    </div>
+
+                                                                    {vendor.inventory && (
+                                                                        <div className="mt-1 text-xs text-muted-foreground/80 pl-4 border-l-2 border-primary/20">
+                                                                            {vendor.inventory}
+                                                                        </div>
+                                                                    )}
+                                                                </div>
                                                             </SelectItem>
                                                         ))
                                                     )}
@@ -334,29 +424,61 @@ const AtHomeBookingsPage = () => {
                                         </h3>
                                         <div className="mb-4 space-y-2">
                                             {selectedBooking.products.map((p, idx) => (
-                                                <div key={idx} className="text-sm flex justify-between bg-secondary/20 p-2 rounded">
-                                                    <span>{p.master_product?.name || 'Product'} (x{p.quantity})</span>
-                                                    <span className="font-medium">{p.product_price} CDF</span>
+                                                <div key={idx} className="flex justify-between items-center p-3 bg-card border rounded-md shadow-sm mb-2">
+                                                    <div className="flex items-center gap-2">
+                                                        <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center text-primary">
+                                                            <Package className="w-4 h-4" />
+                                                        </div>
+                                                        <div>
+                                                            <p className="font-medium text-sm leading-none">{p.master_product?.name || 'Product'} <span className="text-muted-foreground ml-1">(x{p.quantity})</span></p>
+                                                            <p className="text-xs text-muted-foreground mt-1">Item #{idx + 1}</p>
+                                                        </div>
+                                                    </div>
+                                                    <div className="text-right">
+                                                        <p className="font-semibold text-sm">{p.product_price?.toLocaleString()} CDF</p>
+                                                        <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Customer Paid</p>
+                                                    </div>
                                                 </div>
                                             ))}
                                         </div>
 
                                         <div className="space-y-2">
                                             <label className="text-sm font-medium">Select Product Vendor</label>
-                                            {/* Usually same vendors sell products, or specific product vendors. logic filters them. */}
+                                            {productVendors.length > 0 && productVendors[0].matchType === 'fallback' && (
+                                                <div className="mb-2 p-2 bg-amber-50 border border-amber-200 rounded text-xs text-amber-800 flex items-center gap-2">
+                                                    <AlertCircle className="w-3 h-3" />
+                                                    <span>Exact product match not found. Showing all available vendors for manual assignment.</span>
+                                                </div>
+                                            )}
                                             <Select value={selectedProductVendor} onValueChange={setSelectedProductVendor}>
-                                                <SelectTrigger>
+                                                <SelectTrigger className="h-auto py-3">
                                                     <SelectValue placeholder="Choose a product vendor..." />
                                                 </SelectTrigger>
-                                                <SelectContent>
+                                                <SelectContent className="max-h-[300px]">
                                                     {loadingVendors ? (
                                                         <SelectItem value="loading" disabled>Loading eligible vendors...</SelectItem>
-                                                    ) : eligibleVendors.length === 0 ? (
-                                                        <SelectItem value="none" disabled>No eligible vendors found</SelectItem>
+                                                    ) : productVendors.length === 0 ? (
+                                                        <SelectItem value="none" disabled>No vendors match product category</SelectItem>
                                                     ) : (
-                                                        eligibleVendors.map((vendor) => (
-                                                            <SelectItem key={`prod-${vendor.id}`} value={vendor.id}>
-                                                                {vendor.shopname}
+                                                        productVendors.map((vendor) => (
+                                                            <SelectItem key={`prod-${vendor.id}`} value={vendor.id} className="py-3 border-b last:border-0 border-border/40">
+                                                                <div className="flex flex-col text-left gap-1">
+                                                                    <div className="flex items-center gap-2">
+                                                                        <span className="font-semibold text-base">{vendor.shopname}</span>
+                                                                        {vendor.matchType === 'match' && <Badge variant="secondary" className="text-[10px] h-4 px-1">Best Match</Badge>}
+                                                                    </div>
+
+                                                                    <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                                                                        <MapPin className="w-3 h-3" />
+                                                                        {vendor.location || 'Unknown Location'}
+                                                                    </div>
+
+                                                                    {vendor.inventory && (
+                                                                        <div className="mt-1 text-xs text-muted-foreground/80 pl-4 border-l-2 border-primary/20">
+                                                                            {vendor.inventory}
+                                                                        </div>
+                                                                    )}
+                                                                </div>
                                                             </SelectItem>
                                                         ))
                                                     )}

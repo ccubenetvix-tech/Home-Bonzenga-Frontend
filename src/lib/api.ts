@@ -45,8 +45,8 @@ class ApiClient {
         if (session?.access_token) {
           config.headers.Authorization = `Bearer ${session.access_token}`;
         } else {
-          // Fallback to custom backend auth token
-          const token = localStorage.getItem('accessToken');
+          // Fallback to custom backend auth token (check both common keys)
+          const token = localStorage.getItem('accessToken') || localStorage.getItem('token');
           if (token) {
             config.headers.Authorization = `Bearer ${token}`;
           }
