@@ -11,7 +11,7 @@ import { motion } from 'framer-motion';
 import Navigation from '@/components/Navigation';
 import { useSupabaseAuth } from '@/contexts/SupabaseAuthContext';
 import { toast } from 'sonner';
-import { 
+import {
   Calendar,
   Clock,
   MapPin,
@@ -87,71 +87,77 @@ const BookingCheckoutPage = () => {
 
     try {
       const token = localStorage.getItem('token');
-      
-      // Get user from context
-      const currentUser = user || { id: 'static-customer-id' };
-      
-      if (!currentUser?.id) {
-        throw new Error('User not authenticated');
-      }
-      
-      // Transform services to match backend expected format
+
+      // Get user from context or fallback (though auth is required usually)
+      const currentUser = user || { id: 'guest', email: customerInfo.email };
+
+      // Transform services to match backend expectation
+      // Payload: { id, name, price, duration }
       const transformedServices = (bookingData?.services || []).map((service: any) => ({
         id: service.id,
-        serviceId: service.id, // Some endpoints expect serviceId
         name: service.name,
         price: service.price,
-        quantity: 1 // Default quantity, can be updated if needed
+        duration: service.duration
       }));
 
+      // Construct payload for POST /api/bookings/at-salon
       const bookingPayload = {
-        customerId: currentUser.id,
         vendorId: bookingData?.vendor?.id,
+        customer: {
+          name: customerInfo.name,
+          phone: customerInfo.phone,
+          email: customerInfo.email
+        },
+        appointment: {
+          date: selectedDate,
+          time: selectedTime,
+          notes: customerInfo.notes || ''
+        },
         services: transformedServices,
-        products: bookingData?.products || [],
-        scheduledDate: selectedDate,
-        scheduledTime: selectedTime,
-        customerInfo,
-        total: getTotalPrice(),
-        status: 'PENDING',
-        // Add addressId if available from customerInfo, otherwise backend will try to find default address
-        addressId: customerInfo?.addressId || undefined
+        totalAmount: getTotalPrice()
       };
 
-      console.log('Booking payload:', bookingPayload);
+      console.log('Sending At-Salon Booking Payload:', bookingPayload);
 
-      const response = await fetch(`http://localhost:3001/api/vendors/${bookingData?.vendor.id}/bookings`, {
+      // Call the new independent endpoint
+      const response = await fetch('http://localhost:3001/api/at-salon-booking', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+          'Authorization': token ? `Bearer ${token}` : ''
         },
         body: JSON.stringify(bookingPayload)
       });
 
-      if (response.ok) {
+      const contentType = response.headers.get('content-type');
+      if (contentType && contentType.includes('application/json')) {
         const result = await response.json();
-        const bookingId = result.booking?.id || result.data?.id;
-        
-        toast.success('Booking created successfully!');
-        
-        // Redirect to success page
-        navigate('/booking/success', { 
-          state: { 
-            bookingId, 
-            vendor: bookingData?.vendor,
-            total: getTotalPrice()
-          } 
-        });
+        if (response.ok) {
+          const bookingId = result.bookingId;
+          toast.success('Booking confirmed successfully!');
+          navigate('/booking/success', {
+            state: {
+              bookingId,
+              vendor: bookingData?.vendor,
+              total: getTotalPrice(),
+              date: selectedDate,
+              time: selectedTime,
+              services: bookingData?.services
+            }
+          });
+          return;
+        } else {
+          throw new Error(result.error || 'Booking failed');
+        }
       } else {
-        const errorData = await response.json();
-        console.error('Booking API error:', errorData);
-        throw new Error(errorData.error || 'Booking failed');
+        // Handle non-JSON response (e.g. 404 HTML)
+        const text = await response.text();
+        console.error('Non-JSON response:', text);
+        throw new Error(`Server returned unexpected status: ${response.status}`);
       }
     } catch (error: any) {
       console.error('Booking failed:', error);
       toast.error(error.message || 'Failed to create booking. Please try again.');
-      // Don't redirect on error, let user fix the issue
     } finally {
       setLoading(false);
     }
@@ -180,14 +186,14 @@ const BookingCheckoutPage = () => {
   return (
     <div className="min-h-screen bg-background">
       <Navigation />
-      
+
       <div className="pt-20 pb-12 bg-gradient-to-br from-[#fdf6f0] to-[#f8d7da]/20">
         <div className="container mx-auto px-4">
           <motion.div {...fadeInUp}>
             <div className="flex items-center space-x-4 mb-8">
-              <Button 
-                variant="outline" 
-                size="sm" 
+              <Button
+                variant="outline"
+                size="sm"
                 onClick={() => navigate(-1)}
                 className="border-[#4e342e] text-[#4e342e] hover:bg-[#4e342e] hover:text-white"
               >
@@ -245,7 +251,7 @@ const BookingCheckoutPage = () => {
                         required
                       />
                     </div>
-                    
+
                     <div>
                       <Label className="text-[#4e342e] font-medium">Available Time Slots</Label>
                       <div className="grid grid-cols-3 md:grid-cols-5 gap-3 mt-3">
@@ -255,11 +261,10 @@ const BookingCheckoutPage = () => {
                             type="button"
                             variant={selectedTime === time ? "default" : "outline"}
                             onClick={() => setSelectedTime(time)}
-                            className={`${
-                              selectedTime === time
-                                ? 'bg-[#4e342e] text-white'
-                                : 'border-[#f8d7da] text-[#4e342e] hover:bg-[#f8d7da]/20'
-                            }`}
+                            className={`${selectedTime === time
+                              ? 'bg-[#4e342e] text-white'
+                              : 'border-[#f8d7da] text-[#4e342e] hover:bg-[#f8d7da]/20'
+                              }`}
                           >
                             {time}
                           </Button>
@@ -301,7 +306,7 @@ const BookingCheckoutPage = () => {
                         />
                       </div>
                     </div>
-                    
+
                     <div>
                       <Label htmlFor="email" className="text-[#4e342e] font-medium">Email Address</Label>
                       <Input
@@ -313,7 +318,7 @@ const BookingCheckoutPage = () => {
                         required
                       />
                     </div>
-                    
+
                     <div>
                       <Label htmlFor="address" className="text-[#4e342e] font-medium">Address</Label>
                       <Textarea
@@ -325,7 +330,7 @@ const BookingCheckoutPage = () => {
                         required
                       />
                     </div>
-                    
+
                     <div>
                       <Label htmlFor="notes" className="text-[#4e342e] font-medium">Special Instructions (Optional)</Label>
                       <Textarea
@@ -358,7 +363,7 @@ const BookingCheckoutPage = () => {
                             <span className="text-[#4e342e] font-medium">Credit/Debit Card</span>
                           </Label>
                         </div>
-                        
+
                         <div className="flex items-center space-x-3 p-4 border border-[#f8d7da] rounded-lg hover:bg-[#f8d7da]/10">
                           <RadioGroupItem value="upi" id="upi" />
                           <Label htmlFor="upi" className="flex items-center space-x-3 cursor-pointer flex-1">
@@ -366,7 +371,7 @@ const BookingCheckoutPage = () => {
                             <span className="text-[#4e342e] font-medium">UPI Payment</span>
                           </Label>
                         </div>
-                        
+
                         <div className="flex items-center space-x-3 p-4 border border-[#f8d7da] rounded-lg hover:bg-[#f8d7da]/10">
                           <RadioGroupItem value="wallet" id="wallet" />
                           <Label htmlFor="wallet" className="flex items-center space-x-3 cursor-pointer flex-1">
@@ -376,7 +381,7 @@ const BookingCheckoutPage = () => {
                         </div>
                       </div>
                     </RadioGroup>
-                    
+
                     {paymentMethod === 'card' && (
                       <div className="mt-6 p-4 bg-[#f8d7da]/10 rounded-lg">
                         <p className="text-sm text-[#6d4c41] mb-4">
@@ -417,7 +422,7 @@ const BookingCheckoutPage = () => {
                           <span className="font-semibold text-[#4e342e]">${service.price}</span>
                         </div>
                       ))}
-                      
+
                       {/* Products */}
                       {bookingData.products.map((product) => (
                         <div key={product.id} className="flex justify-between items-center p-3 bg-[#f8d7da]/20 rounded-lg">
@@ -428,21 +433,21 @@ const BookingCheckoutPage = () => {
                           <span className="font-semibold text-[#4e342e]">${product.price * product.quantity}</span>
                         </div>
                       ))}
-                      
+
                       <div className="border-t pt-4">
                         <div className="flex justify-between items-center text-lg font-bold text-[#4e342e]">
                           <span>Total</span>
                           <span>${getTotalPrice()}</span>
                         </div>
                       </div>
-                      
+
                       <div className="flex items-center space-x-2 text-sm text-[#6d4c41]">
                         <Shield className="w-4 h-4" />
                         <span>Secure payment processing</span>
                       </div>
-                      
-                      <Button 
-                        type="submit" 
+
+                      <Button
+                        type="submit"
                         className="w-full bg-[#4e342e] hover:bg-[#6d4c41] text-white py-3"
                         disabled={loading || !selectedDate || !selectedTime}
                       >

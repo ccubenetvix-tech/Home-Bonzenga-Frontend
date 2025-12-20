@@ -114,15 +114,14 @@ const VendorDashboard = () => {
 
       const statsData = (statsRes.data || {}) as any;
       const profileData = (profileRes.data || {}) as any;
-      const appointmentsData = (appointmentsRes.data || {}) as any;
-      const servicesData = (servicesRes.data || {}) as any;
+      // appointmentsData and servicesData removed to access response directly
 
       // Aggregate stats from multiple sources
       const combinedStats: VendorStats = {
         newBookings: statsData.newBookings || 0,
         completedServices: statsData.completedServices || 0,
         monthlyRevenue: statsData.monthlyRevenue || 0, // Value from stats endpoint
-        totalServices: statsData.totalServices || servicesData.services?.length || 0,
+        totalServices: statsData.totalServices || (servicesRes.data as any)?.services?.length || 0,
         pendingBookings: statsData.newBookings || 0, // Using newBookings as proxy for pending
         totalCustomers: profileData.stats?.totalBookings || 0, // Proxy
         averageRating: profileData.stats?.averageRating || 0,
@@ -130,8 +129,8 @@ const VendorDashboard = () => {
       };
 
       setStats(combinedStats);
-      setRecentAppointments(appointmentsData.appointments || []);
-      setServices((servicesData.services || []).map((s: any) => ({
+      setRecentAppointments((appointmentsRes.data as any)?.appointments || []);
+      setServices(((servicesRes.data as any)?.services || []).map((s: any) => ({
         id: s.id,
         name: s.name,
         price: s.price,
@@ -363,18 +362,6 @@ const VendorDashboard = () => {
                   <Button className="w-full bg-[#4e342e] hover:bg-[#6d4c41] text-white justify-start">
                     <Plus className="w-4 h-4 mr-2" />
                     Add New Service
-                  </Button>
-                </Link>
-                <Link to="/vendor/appointments" className="block">
-                  <Button variant="outline" className="w-full border-[#4e342e] text-[#4e342e] hover:bg-[#4e342e] hover:text-white justify-start">
-                    <Calendar className="w-4 h-4 mr-2" />
-                    Manage Appointments
-                  </Button>
-                </Link>
-                <Link to="/vendor/revenue" className="block">
-                  <Button variant="outline" className="w-full border-[#4e342e] text-[#4e342e] hover:bg-[#4e342e] hover:text-white justify-start">
-                    <BarChart3 className="w-4 h-4 mr-2" />
-                    View Revenue
                   </Button>
                 </Link>
                 <Link to="/vendor/profile" className="block">

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { api } from '@/lib/api'; // Added import
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -84,6 +84,7 @@ interface Product {
 
 const VendorDetailsPage = () => {
     const { id } = useParams<{ id: string }>();
+    const navigate = useNavigate();
     const [vendor, setVendor] = useState<Vendor | null>(null);
     const [beauticians, setBeauticians] = useState<Beautician[]>([]);
     const [services, setServices] = useState<Service[]>([]);
@@ -223,11 +224,8 @@ const VendorDetailsPage = () => {
                 return product ? { ...product, quantity: qty } : null;
             }).filter(Boolean)
         } as any;
-        // Use window.history state via Link equivalent
-        // Navigate programmatically to avoid complex JSX state expression
-        (window as any).appNavigate
-            ? (window as any).appNavigate('/booking/checkout', { state: statePayload })
-            : (location.href = '/booking/checkout');
+
+        navigate('/booking/checkout', { state: statePayload });
     };
 
     const fadeInUp = {
@@ -281,7 +279,7 @@ const VendorDetailsPage = () => {
             <Navigation />
 
             {/* HERO SECTION */}
-            <div className="relative pt-20">
+            <div className="relative">
                 <div
                     className={`h-[400px] w-full bg-gradient-to-br from-[#4e342e] via-[#6d4c41] to-[#4e342e] relative`}
                     style={heroImageStyle}
@@ -329,7 +327,7 @@ const VendorDetailsPage = () => {
                                     </div>
                                 </div>
 
-                                <div className="flex items-center gap-4 text-white/90 text-sm font-medium">
+                                <div className="flex items-center mb-2 gap-4 text-white/90 text-sm font-medium">
                                     {vendor.rating ? (
                                         <span className="flex items-center gap-1.5 bg-black/30 px-3 py-1 rounded-full backdrop-blur-sm border border-white/10">
                                             <Star className="w-4 h-4 text-yellow-400 fill-yellow-400" />
@@ -349,7 +347,7 @@ const VendorDetailsPage = () => {
 
             {/* CONTENT */}
             <div className="container mx-auto px-4 -mt-12 relative z-10">
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <div className="mb-20 grid grid-cols-1 lg:grid-cols-3 gap-8">
                     {/* LEFT: MAIN */}
                     <div className="lg:col-span-2">
                         {/* ABOUT + INFO */}
@@ -409,20 +407,6 @@ const VendorDetailsPage = () => {
                                             <p className="text-sm text-[#6d4c41] leading-relaxed">Your appointment is saved to this vendor’s booking dashboard instantly. They can confirm, assign staff, and prepare for your visit.</p>
                                         </div>
                                     </div>
-
-                                    <div>
-                                        <h3 className="font-semibold text-[#4e342e] mb-4 flex items-center gap-2">
-                                            <Calendar className="w-4 h-4" /> Working Hours
-                                        </h3>
-                                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-y-3 gap-x-8">
-                                            {Object.entries(vendor.workingHours).map(([day, hours]) => (
-                                                <div key={day} className="flex flex-col">
-                                                    <span className="text-[#8d6e63] text-xs font-medium uppercase tracking-wide mb-1">{day}</span>
-                                                    <span className="text-[#4e342e] text-sm font-medium">{hours}</span>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    </div>
                                 </CardContent>
                             </Card>
                         </motion.div>
@@ -464,69 +448,6 @@ const VendorDetailsPage = () => {
                                                     <Button
                                                         size="sm"
                                                         onClick={() => addService(service)}
-                                                        className="h-8 px-3 bg-[#4e342e] hover:bg-[#6d4c41] text-white text-xs rounded-full"
-                                                    >
-                                                        <Plus className="w-3 h-3 mr-1" />
-                                                        Add
-                                                    </Button>
-                                                </div>
-                                            </CardContent>
-                                        </Card>
-                                    ))}
-                                </div>
-                            )}
-                        </div>
-
-                        {/* Products Section */}
-                        <div className="mt-12 mb-10">
-                            <h2 className="text-2xl font-serif font-bold text-[#4e342e] mb-6 flex items-center">
-                                <Sparkles className="w-5 h-5 mr-2" />
-                                Products
-                            </h2>
-                            {products.length === 0 ? (
-                                <div className="text-center py-12 bg-white rounded-xl border border-dashed border-[#d7ccc8]">
-                                    <div className="bg-[#efebe9] p-4 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
-                                        <ShoppingCart className="w-8 h-8 text-[#8d6e63]" />
-                                    </div>
-                                    <h3 className="text-lg font-medium text-[#4e342e] mb-1">No products yet</h3>
-                                    <p className="text-[#8d6e63]">This vendor currently has no products for sale.</p>
-                                </div>
-                            ) : (
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                                    {products.map((product) => (
-                                        <Card key={product.id} className="border-0 bg-white shadow-md hover:shadow-lg transition-shadow overflow-hidden flex flex-row h-full rounded-xl">
-                                            <div className="w-1/3 min-w-[110px] max-w-[130px] relative bg-gray-100 flex items-center justify-center">
-                                                {product.image ? (
-                                                    <img
-                                                        src={product.image}
-                                                        alt={product.name}
-                                                        className="h-full w-full object-cover absolute inset-0"
-                                                    />
-                                                ) : (
-                                                    <ShoppingCart className="w-8 h-8 text-gray-300" />
-                                                )}
-                                            </div>
-                                            <CardContent className="p-4 flex-1 flex flex-col">
-                                                <div className="flex justify-between items-start mb-1">
-                                                    <h3 className="font-semibold text-[#4e342e] line-clamp-1" title={product.name}>{product.name}</h3>
-                                                    <span className="font-bold text-[#4e342e] whitespace-nowrap ml-2">${product.price}</span>
-                                                </div>
-                                                <p className="text-[#6d4c41] text-xs mb-3 line-clamp-2 flex-grow">{product.description}</p>
-                                                <div className="flex items-center justify-between mt-auto pt-2 border-t border-gray-50">
-                                                    <div className="text-xs">
-                                                        {product.inStock ? (
-                                                            <span className="text-emerald-600 font-medium bg-emerald-50 px-2 py-0.5 rounded-full">In Stock</span>
-                                                        ) : (
-                                                            <span className="text-red-500 font-medium bg-red-50 px-2 py-0.5 rounded-full">Out of Stock</span>
-                                                        )}
-                                                    </div>
-                                                    <Button
-                                                        size="sm"
-                                                        onClick={() => {
-                                                            const currentQty = selectedProducts[product.id] || 0;
-                                                            updateProductQuantity(product.id, currentQty + 1);
-                                                        }}
-                                                        disabled={!product.inStock}
                                                         className="h-8 px-3 bg-[#4e342e] hover:bg-[#6d4c41] text-white text-xs rounded-full"
                                                     >
                                                         <Plus className="w-3 h-3 mr-1" />
