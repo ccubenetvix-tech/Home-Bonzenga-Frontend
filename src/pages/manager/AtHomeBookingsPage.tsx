@@ -49,6 +49,10 @@ interface AtHomeBooking {
     status: string; // 'PENDING' | 'ASSIGNED' | 'COMPLETED'
     services: any[];
     products: any[];
+    assigned_beautician?: {
+        name: string;
+        phone: string;
+    };
 }
 
 interface EligibleVendor {
@@ -262,17 +266,28 @@ const AtHomeBookingsPage = () => {
                                                 </Badge>
                                             </TableCell>
                                             <TableCell className="text-right">
-                                                {booking.status === 'ASSIGNED' ? (
-                                                    <Button variant="outline" size="sm" disabled className="text-green-600 border-green-200 bg-green-50">
-                                                        <CheckCircle className="w-4 h-4 mr-1" /> Assigned
-                                                    </Button>
+                                                {(booking.status === 'ASSIGNED' || booking.status === 'ACCEPTED') ? (
+                                                    <div className="flex flex-col items-end gap-1">
+                                                        <div className="flex items-center gap-1 text-xs text-green-700 font-medium bg-green-50 px-2 py-1 rounded">
+                                                            <CheckCircle className="w-3 h-3" />
+                                                            {booking.assigned_beautician?.name || 'Assigned'}
+                                                        </div>
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="sm"
+                                                            onClick={() => openAssignModal(booking)}
+                                                            className="text-blue-600 hover:text-blue-800 hover:bg-blue-50 h-6 text-xs"
+                                                        >
+                                                            Change / Reassign
+                                                        </Button>
+                                                    </div>
                                                 ) : (
                                                     <Button
                                                         onClick={() => openAssignModal(booking)}
                                                         className="bg-[#4e342e] hover:bg-[#3b2c26] text-white"
                                                         size="sm"
                                                     >
-                                                        Assign Vendor
+                                                        Assign Beautician
                                                     </Button>
                                                 )}
                                             </TableCell>
@@ -321,7 +336,7 @@ const AtHomeBookingsPage = () => {
                                 <div className="space-y-4">
                                     <h3 className="font-semibold flex items-center gap-2">
                                         <UserCheck className="w-4 h-4 text-primary" />
-                                        Available Beauticians
+                                        Assign Beautician
                                     </h3>
 
                                     {loadingVendors ? (

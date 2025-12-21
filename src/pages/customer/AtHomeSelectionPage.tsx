@@ -230,7 +230,7 @@ const AtHomeSelectionPage = () => {
 
 export default AtHomeSelectionPage;
 
-function Badge({ children, className = "" }: { children: React.ReactNode, className?: string }) {
+function LocalBadge({ children, className = "" }: { children: React.ReactNode, className?: string }) {
     return (
         <span className={`px-2 py-1 rounded inline-flex items-center text-[10px] font-bold ${className}`}>
             {children}

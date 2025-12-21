@@ -116,7 +116,12 @@ const AdminBeauticiansPage = () => {
 
     const filtered = beauticians.filter(b =>
         b.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        b.skills?.toLowerCase().includes(searchTerm.toLowerCase())
+        (typeof b.skills === 'string'
+            ? b.skills.toLowerCase().includes(searchTerm.toLowerCase())
+            : Array.isArray(b.skills)
+                ? (b.skills as string[]).join(' ').toLowerCase().includes(searchTerm.toLowerCase())
+                : false
+        )
     );
 
     return (

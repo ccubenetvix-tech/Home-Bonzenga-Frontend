@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import { toast } from 'sonner';
 import { useSupabaseAuth } from "@/contexts/SupabaseAuthContext";
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -25,7 +27,6 @@ import {
   AlertCircle,
   DollarSign
 } from 'lucide-react';
-import { toast } from 'sonner';
 import { supabase } from '@/lib/supabase';
 import { supabaseConfig } from '@/config/supabase';
 
@@ -62,6 +63,7 @@ interface Booking {
 }
 
 const CustomerBookingsPage = () => {
+  const navigate = useNavigate();
   const { t } = useTranslation();
   const { user } = useSupabaseAuth();
   const [bookings, setBookings] = useState<Booking[]>([]);
@@ -70,6 +72,14 @@ const CustomerBookingsPage = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [paymentFilter, setPaymentFilter] = useState<string>('all');
+
+  const handleViewBooking = (booking: Booking) => {
+    if (booking.bookingType === 'AT_HOME') {
+      navigate(`/customer/athome-bookings/${booking.id}`);
+    } else {
+      toast.info("Salon booking details are currently unavailable.");
+    }
+  };
 
   useEffect(() => {
     if (user?.id) {
@@ -92,132 +102,120 @@ const CustomerBookingsPage = () => {
     try {
       setIsLoading(true);
 
-      if (!user?.id) {
-        console.log('No user ID available');
-        setBookings([]);
-        return;
-      }
-
-      // Check if Supabase is configured
-      if (!supabaseConfig.isConfigured) {
-        console.warn('Supabase not configured');
-        setBookings([]);
-        toast.error('Please configure Supabase to view bookings.');
-        return;
-      }
+      if (!user?.id) return;
 
       const userId = user.id;
 
-      // Fetch bookings directly from Supabase
-      const { data: bookingsData, error: bookingsError } = await supabase
+      // 1. Fetch SALON bookings
+      // 1. Fetch SALON bookings
+      const { data: salonData } = await supabase
         .from('bookings')
+        .select(`*, address:addresses(*), vendor:vendor(*), booking_items(*), payments(*)`)
+        .eq('customer_id', userId)
+        .order('created_at', { ascending: false });
+
+      // 2. Fetch AT-HOME bookings
+      const { data: athomeData } = await supabase
+        .from('athome_bookings')
         .select(`
-          *,
-          address:addresses(
-            street,
-            city,
-            state,
-            zip_code
-          ),
-          vendor:vendor!vendor_id(
-            id,
-            shopname,
-            address,
-            city,
-            state
-          ),
-          booking_items(
-            id,
-            quantity,
-            price,
-            service_id
-          ),
-          payments(
-            id,
-            status,
-            amount
-          )
+            *,
+            beautician:beauticians!athome_bookings_assigned_beautician_id_fkey (*)
         `)
         .eq('customer_id', userId)
         .order('created_at', { ascending: false });
 
-      if (bookingsError) {
-        console.error('Error fetching bookings from Supabase:', bookingsError);
-        setBookings([]);
-        toast.error('Failed to load bookings. Please try again.');
-        return;
-      }
+      let allBookings: Booking[] = [];
 
-      // Fetch services for booking items
-      const bookingItemIds = (bookingsData || [])
-        .flatMap((b: any) => (b.booking_items || []).map((item: any) => item.service_id))
-        .filter((id: string) => id);
-
-      let servicesMap: Record<string, any> = {};
-      if (bookingItemIds.length > 0) {
-        const { data: servicesData } = await supabase
-          .from('services')
-          .select('id, name, price, duration')
-          .in('id', [...new Set(bookingItemIds)]);
-
-        if (servicesData) {
-          servicesMap = servicesData.reduce((acc: any, service: any) => {
-            acc[service.id] = service;
-            return acc;
-          }, {});
+      // Process Salon Bookings
+      if (salonData) {
+        const bookingItemIds = salonData.flatMap((b: any) => (b.booking_items || []).map((item: any) => item.service_id)).filter(Boolean);
+        let servicesMap: Record<string, any> = {};
+        if (bookingItemIds.length > 0) {
+          const { data: sData } = await supabase.from('services').select('id, name, price, duration').in('id', [...new Set(bookingItemIds)]);
+          if (sData) sData.forEach((s: any) => servicesMap[s.id] = s);
         }
+
+        const processedSalon = salonData.map((b: any) => {
+          const services = (b.booking_items || []).map((item: any) => ({
+            id: item.service_id,
+            name: servicesMap[item.service_id]?.name || 'Service',
+            price: item.price,
+            duration: servicesMap[item.service_id]?.duration || 60
+          }));
+          return {
+            id: b.id,
+            bookingNumber: b.id.substring(0, 8).toUpperCase(),
+            status: mapBookingStatus(b.status),
+            paymentStatus: mapPaymentStatus(b.payments?.some((p: any) => p.status === 'COMPLETED') ? 'PAID' : 'UNPAID'),
+            scheduledDate: b.scheduled_date,
+            scheduledTime: b.scheduled_time,
+            total: parseFloat(b.total),
+            bookingType: 'SALON',
+            serviceAddress: b.vendor ? `${b.vendor.address}, ${b.vendor.city}` : 'Salon',
+            serviceType: determineServiceType(b),
+            vendor: b.vendor ? {
+              id: b.vendor.id,
+              shopname: b.vendor.shopname,
+              address: `${b.vendor.address || ''}, ${b.vendor.city || ''}`
+            } : undefined,
+            services,
+            createdAt: b.created_at
+          } as Booking;
+        });
+        allBookings = [...allBookings, ...processedSalon];
       }
 
-      // Transform Supabase bookings to match our Booking interface
-      const transformedBookings: Booking[] = (bookingsData || []).map((booking: any) => {
-        // Determine payment status from payments
-        const payments = booking.payments || [];
-        const hasPaidPayment = payments.some((p: any) => p.status === 'COMPLETED');
-        const paymentStatus = hasPaidPayment ? 'paid' : 'unpaid';
+      // Process At-Home Bookings
+      if (athomeData && athomeData.length > 0) {
+        const athomeIds = athomeData.map((b: any) => b.id);
+        const { data: ahServices } = await supabase
+          .from('athome_booking_services')
+          .select('booking_id, admin_service_id, master:admin_services(name)')
+          .in('booking_id', athomeIds);
 
-        // Extract services from booking items
-        const services = (booking.booking_items || []).map((item: any) => {
-          const service = servicesMap[item.service_id];
+        const ahServicesMap: Record<string, any[]> = {};
+        if (ahServices) {
+          ahServices.forEach((s: any) => {
+            if (!ahServicesMap[s.booking_id]) ahServicesMap[s.booking_id] = [];
+            ahServicesMap[s.booking_id].push({ name: s.master?.name || 'Service', price: 0, duration: 0 });
+          });
+        }
+
+        const processedAtHome = athomeData.map((b: any) => {
+          let addr = 'Home';
+          if (typeof b.address === 'string') addr = b.address;
+          else if (b.address?.street) addr = `${b.address.street}, ${b.address.city}`;
+
           return {
-            id: service?.id || item.service_id || item.id,
-            name: service?.name || 'Service',
-            price: service?.price || item.price || 0,
-            duration: service?.duration || 60
-          };
+            id: b.id,
+            bookingNumber: b.id.substring(0, 8).toUpperCase(),
+            status: mapBookingStatus(b.status),
+            paymentStatus: 'paid',
+            scheduledDate: b.slot,
+            scheduledTime: new Date(b.slot).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            total: parseFloat(b.total_price || '0'),
+            bookingType: 'AT_HOME',
+            serviceAddress: addr,
+            serviceType: 'hair',
+            beautician: b.beautician ? {
+              id: b.beautician.id,
+              firstName: b.beautician.name.split(' ')[0],
+              lastName: b.beautician.name.split(' ').slice(1).join(' '),
+              skills: b.beautician.skills || []
+            } : undefined,
+            services: ahServicesMap[b.id] || [],
+            createdAt: b.created_at
+          } as Booking;
         });
+        allBookings = [...allBookings, ...processedAtHome];
+      }
 
-        return {
-          id: booking.id,
-          bookingNumber: booking.id.substring(0, 8).toUpperCase(),
-          status: mapBookingStatus(booking.status || 'PENDING'),
-          paymentStatus: mapPaymentStatus(paymentStatus),
-          scheduledDate: booking.scheduled_date || booking.created_at,
-          scheduledTime: booking.scheduled_time || '10:00 AM',
-          total: parseFloat(booking.total) || 0,
-          bookingType: booking.booking_type || 'SALON',
-          serviceAddress: booking.address
-            ? `${booking.address.street}, ${booking.address.city}`
-            : booking.vendor
-              ? `${booking.vendor.address || ''}, ${booking.vendor.city || ''}`
-              : 'Location Pending',
-          serviceType: determineServiceType(booking),
-          vendor: booking.vendor ? {
-            id: booking.vendor.id,
-            shopname: booking.vendor.shopname,
-            address: `${booking.vendor.address || ''}, ${booking.vendor.city || ''}`
-          } : undefined,
-          services: services,
-          beautician: undefined, // Can be added if employee_id is available
-          createdAt: booking.created_at || new Date().toISOString(),
-          notes: booking.notes || ''
-        };
-      });
+      allBookings.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      setBookings(allBookings);
 
-      setBookings(transformedBookings);
     } catch (error) {
       console.error('Error fetching bookings:', error);
-      setBookings([]);
-      toast.error('Failed to load bookings. Please try again.');
+      toast.error('Failed to load bookings.');
     } finally {
       setIsLoading(false);
     }
@@ -548,6 +546,7 @@ const CustomerBookingsPage = () => {
                               variant="outline"
                               size="sm"
                               className="border-[#4e342e] text-[#4e342e] hover:bg-[#4e342e] hover:text-white text-xs sm:text-sm px-2 sm:px-3"
+                              onClick={() => handleViewBooking(booking)}
                             >
                               <Eye className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
                               <span className="hidden sm:inline">View</span>

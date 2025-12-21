@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -9,13 +9,13 @@ import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import DashboardLayout from '@/components/DashboardLayout';
 import { useSupabaseAuth } from "@/contexts/SupabaseAuthContext";
-import { 
-  Home, 
-  Scissors, 
-  Sparkles, 
-  Heart, 
-  Clock, 
-  DollarSign, 
+import {
+  Home,
+  Scissors,
+  Sparkles,
+  Heart,
+  Clock,
+  DollarSign,
   Search,
   ArrowRight,
   Star,
@@ -42,6 +42,7 @@ interface SelectedService extends Service {
 const AtHomeServicesPage = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const location = useLocation();
   const { addItem } = useCart();
   const { user } = useSupabaseAuth();
   const [services, setServices] = useState<{ [key: string]: Service[] }>({});
@@ -53,6 +54,37 @@ const AtHomeServicesPage = () => {
   useEffect(() => {
     fetchServices();
   }, []);
+
+  // Handle Rebook Logic
+  useEffect(() => {
+    if (!loading && location.state?.rebook && Object.keys(services).length > 0) {
+      const booking = location.state.rebook;
+      const allServices = Object.values(services).flat();
+      let addedCount = 0;
+
+      // Clear current cart first? Maybe not, customer might want to add to it. 
+      // But usually rebook implies "book this again". 
+      // Let's assume we append or if empty we fill.
+
+      booking.services.forEach((bookedSvc: any) => {
+        // Try to find matching service by Name (most robust across different ID systems)
+        const match = allServices.find(s => s.name === (bookedSvc.name || bookedSvc.master?.name || bookedSvc.service_name));
+
+        if (match) {
+          // Check if already selected to avoid duplicates if effect runs twice (though dependency handles it)
+          // better to just use addToCart
+          addToCart(match);
+          addedCount++;
+        }
+      });
+
+      if (addedCount > 0) {
+        toast.success(`Reloaded ${addedCount} services from previous booking`);
+        // Clear state to prevent re-adding on refresh?
+        window.history.replaceState({}, document.title);
+      }
+    }
+  }, [loading, services, location.state]);
 
   const fetchServices = async () => {
     try {
@@ -78,9 +110,9 @@ const AtHomeServicesPage = () => {
     // Update local selection UI
     const existingService = selectedServices.find(s => s.id === service.id);
     if (existingService) {
-      setSelectedServices(prev => 
-        prev.map(s => 
-          s.id === service.id 
+      setSelectedServices(prev =>
+        prev.map(s =>
+          s.id === service.id
             ? { ...s, quantity: s.quantity + 1 }
             : s
         )
@@ -110,9 +142,9 @@ const AtHomeServicesPage = () => {
       removeFromCart(serviceId);
       return;
     }
-    setSelectedServices(prev => 
-      prev.map(s => 
-        s.id === serviceId 
+    setSelectedServices(prev =>
+      prev.map(s =>
+        s.id === serviceId
           ? { ...s, quantity }
           : s
       )
@@ -129,7 +161,7 @@ const AtHomeServicesPage = () => {
 
   const filteredServices = () => {
     let allServices: Service[] = [];
-    
+
     if (selectedCategory === 'all') {
       allServices = Object.values(services).flat();
     } else {
@@ -151,7 +183,7 @@ const AtHomeServicesPage = () => {
       toast.error('Please select at least one service');
       return;
     }
-    
+
     // Check if user is authenticated
     if (!user) {
       // Store selected services in session storage for after login
@@ -161,7 +193,7 @@ const AtHomeServicesPage = () => {
       navigate('/login');
       return;
     }
-    
+
     // Store selected services in session storage for the booking flow
     sessionStorage.setItem('selectedServices', JSON.stringify(selectedServices));
     navigate('/customer/booking-confirmation');
@@ -217,11 +249,10 @@ const AtHomeServicesPage = () => {
                       key={category.key}
                       variant={selectedCategory === category.key ? "default" : "outline"}
                       size="sm"
-                      className={`flex items-center gap-1 sm:gap-2 text-xs sm:text-sm ${
-                        selectedCategory === category.key
+                      className={`flex items-center gap-1 sm:gap-2 text-xs sm:text-sm ${selectedCategory === category.key
                           ? "bg-[#4e342e] text-white"
                           : "border-[#4e342e] text-[#4e342e] hover:bg-[#4e342e] hover:text-white"
-                      }`}
+                        }`}
                       onClick={() => setSelectedCategory(category.key)}
                     >
                       <Icon className="w-3 h-3 sm:w-4 sm:h-4" />
@@ -249,7 +280,7 @@ const AtHomeServicesPage = () => {
                   </CardHeader>
                   <CardContent className="pt-0">
                     <p className="text-[#6d4c41] mb-3 sm:mb-4 text-sm sm:text-base">{service.description}</p>
-                    
+
                     <div className="flex items-center justify-between mb-3 sm:mb-4">
                       <div className="flex items-center gap-3 sm:gap-4 text-xs sm:text-sm text-[#6d4c41]">
                         <div className="flex items-center gap-1">
@@ -263,7 +294,7 @@ const AtHomeServicesPage = () => {
                       </div>
                     </div>
 
-                    <Button 
+                    <Button
                       className="w-full bg-[#4e342e] hover:bg-[#3b2c26] text-white text-sm sm:text-base"
                       onClick={() => addToCart(service)}
                     >
@@ -311,7 +342,7 @@ const AtHomeServicesPage = () => {
                             ×
                           </Button>
                         </div>
-                        
+
                         <div className="flex items-center justify-between text-xs sm:text-sm text-[#6d4c41] mb-2">
                           <span>{service.price.toLocaleString()} CDF</span>
                           <div className="flex items-center gap-1 sm:gap-2">
@@ -334,7 +365,7 @@ const AtHomeServicesPage = () => {
                             </Button>
                           </div>
                         </div>
-                        
+
                         <div className="text-xs sm:text-sm font-medium text-[#4e342e]">
                           Total: {(service.price * service.quantity).toLocaleString()} CDF
                         </div>
@@ -354,7 +385,7 @@ const AtHomeServicesPage = () => {
                       </div>
                     </div>
 
-                    <Button 
+                    <Button
                       className="w-full bg-[#4e342e] hover:bg-[#3b2c26] text-white mt-3 sm:mt-4 text-sm sm:text-base"
                       onClick={proceedToBooking}
                     >

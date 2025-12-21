@@ -34,6 +34,7 @@ const RoleNavigation: React.FC<RoleNavigationProps> = ({ isMobile = false }) => 
       { path: '/', label: t('nav.home'), icon: Home },
       { path: '/at-home-services', label: t('nav.atHomeServices'), icon: Home },
       { path: '/salon-visit', label: t('nav.salonVisit'), icon: Building },
+      { path: '/customer/bookings', label: 'My Bookings', icon: Calendar },
       { path: '/customer', label: t('nav.dashboard'), icon: UserIcon },
     ],
     VENDOR: [
@@ -45,7 +46,7 @@ const RoleNavigation: React.FC<RoleNavigationProps> = ({ isMobile = false }) => 
     ],
     MANAGER: [
       { path: '/manager', label: t('nav.dashboard'), icon: UserCheck },
-      { path: '/manager/at-home-bookings', label: 'Assign Vendors', icon: Sparkles },
+      { path: '/manager/at-home-bookings', label: 'At-Home Bookings', icon: Sparkles },
       { path: '/manager/vendors', label: t('nav.vendors'), icon: Building },
       { path: '/manager/pending-vendors', label: t('nav.pendingVendors'), icon: AlertCircle },
       { path: '/manager/appointments', label: t('nav.appointments'), icon: Calendar },
@@ -54,7 +55,7 @@ const RoleNavigation: React.FC<RoleNavigationProps> = ({ isMobile = false }) => 
       { path: '/admin', label: t('nav.dashboard'), icon: Settings },
       { path: '/admin/users', label: t('nav.users'), icon: Users },
       { path: '/admin/vendors', label: t('nav.vendors'), icon: Building },
-      { path: '/admin/beauticians', label: 'Beauticians', icon: UserCheck }, // Added
+      { path: '/admin/beauticians', label: 'Beauticians', icon: UserCheck },
       { path: '/admin/at-home-services', label: 'Home Services', icon: Scissors },
       { path: '/admin/at-home-products', label: 'Home Products', icon: Package },
     ],

@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Link } from 'react-router-dom';
+import { api } from '@/lib/api';
 import DashboardLayout from '@/components/DashboardLayout';
 import {
   Users,
@@ -120,8 +121,15 @@ const AdminDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [processingVendor, setProcessingVendor] = useState<string | null>(null);
 
+  const [financeStats, setFinanceStats] = useState<any>(null);
+
   useEffect(() => {
     fetchAdminData();
+    // Fetch financials
+    api.get('/invoices/admin/stats').then(res => {
+      // @ts-ignore
+      if (res.data?.success) setFinanceStats(res.data.data);
+    }).catch(e => console.error("Error fetching finance stats:", e));
   }, []);
 
   const fetchAdminData = async () => {
@@ -363,6 +371,36 @@ const AdminDashboard = () => {
           </div>
         </div>
 
+        {/* Financial Overview (Invoiced) */}
+        {financeStats && (
+          <div className="mb-8">
+            <h2 className="text-xl font-serif font-bold text-[#4e342e] mb-4">Financial Overview (Audited)</h2>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <Card className="border-0 bg-white shadow-lg rounded-lg border-l-4 border-l-green-600">
+                <CardContent className="p-6">
+                  <p className="text-sm font-medium text-gray-500">Total Invoiced Revenue</p>
+                  <p className="text-2xl font-bold text-[#4e342e]">{financeStats.totalRevenue?.toLocaleString()} CDF</p>
+                  <p className="text-xs text-gray-400 mt-1">From generated invoices</p>
+                </CardContent>
+              </Card>
+              <Card className="border-0 bg-white shadow-lg rounded-lg border-l-4 border-l-blue-600">
+                <CardContent className="p-6">
+                  <p className="text-sm font-medium text-gray-500">Platform Commission</p>
+                  <p className="text-2xl font-bold text-blue-700">{financeStats.totalCommission?.toLocaleString()} CDF</p>
+                  <p className="text-xs text-gray-400 mt-1">Net Earnings</p>
+                </CardContent>
+              </Card>
+              <Card className="border-0 bg-white shadow-lg rounded-lg border-l-4 border-l-orange-600">
+                <CardContent className="p-6">
+                  <p className="text-sm font-medium text-gray-500">Beautician Payouts</p>
+                  <p className="text-2xl font-bold text-orange-700">{financeStats.totalPayouts?.toLocaleString()} CDF</p>
+                  <p className="text-xs text-gray-400 mt-1">Payable Amount</p>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+        )}
+
         {/* Stats Cards */}
         {stats && (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
@@ -597,6 +635,24 @@ const AdminDashboard = () => {
                   </div>
                   <div className="w-12 h-12 bg-gradient-to-br from-[#4e342e] to-[#6d4c41] rounded-lg flex items-center justify-center">
                     <Building className="w-6 h-6 text-white" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+            <Card className="border-0 bg-white shadow-lg hover:shadow-xl transition-all duration-300 rounded-lg cursor-pointer" onClick={() => window.location.href = '/admin/at-home-bookings'}>
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-[#6d4c41]">Bookings Monitor</p>
+                    <p className="text-2xl font-bold text-[#4e342e]">Live View</p>
+
+                    <div className="flex items-center mt-2">
+                      <Eye className="w-4 h-4 text-[#6d4c41] mr-1" />
+                      <span className="text-sm text-[#6d4c41]">View all active bookings</span>
+                    </div>
+                  </div>
+                  <div className="w-12 h-12 bg-gradient-to-br from-[#4e342e] to-[#6d4c41] rounded-lg flex items-center justify-center">
+                    <Activity className="w-6 h-6 text-white" />
                   </div>
                 </div>
               </CardContent>

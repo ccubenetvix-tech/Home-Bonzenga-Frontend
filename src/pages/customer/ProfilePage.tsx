@@ -9,14 +9,14 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import DashboardLayout from '@/components/DashboardLayout';
-import { 
-  User, 
-  Mail, 
-  Phone, 
-  MapPin, 
-  Edit, 
-  Save, 
-  X, 
+import {
+  User,
+  Mail,
+  Phone,
+  MapPin,
+  Edit,
+  Save,
+  X,
   Loader2,
   CreditCard,
   Home
@@ -33,6 +33,8 @@ interface CustomerProfile {
   paymentMethods: PaymentMethod[];
   createdAt: string;
   updatedAt: string;
+  gender?: string;
+  avatar?: string;
 }
 
 interface Address {
@@ -69,8 +71,10 @@ const CustomerProfilePage = () => {
     city: '',
     state: '',
     zipCode: '',
-    country: 'DR Congo'
+    country: 'DR Congo',
+    gender: 'female' // Default or fetch
   });
+
 
   useEffect(() => {
     fetchProfileData();
@@ -99,8 +103,10 @@ const CustomerProfilePage = () => {
           city: data.addresses?.[0]?.city || '',
           state: data.addresses?.[0]?.state || '',
           zipCode: data.addresses?.[0]?.zipCode || '',
-          country: data.addresses?.[0]?.country || 'DR Congo'
+          country: data.addresses?.[0]?.country || 'DR Congo',
+          gender: data.gender || 'female'
         });
+
       } else {
         // Use mock data if API is not available
         setProfile(getMockProfileData());
@@ -112,7 +118,8 @@ const CustomerProfilePage = () => {
           city: 'Kinshasa',
           state: 'Kinshasa',
           zipCode: '00000',
-          country: 'DR Congo'
+          country: 'DR Congo',
+          gender: 'female'
         });
       }
     } catch (error) {
@@ -127,7 +134,8 @@ const CustomerProfilePage = () => {
         city: 'Kinshasa',
         state: 'Kinshasa',
         zipCode: '00000',
-        country: 'DR Congo'
+        country: 'DR Congo',
+        gender: 'female'
       });
     } finally {
       setIsLoading(false);
@@ -140,7 +148,9 @@ const CustomerProfilePage = () => {
     lastName: user?.lastName || 'Doe',
     email: user?.email || 'john.doe@example.com',
     phone: '+243 123 456 789',
+    gender: 'male',
     addresses: [
+
       {
         id: '1',
         type: 'home',
@@ -210,7 +220,8 @@ const CustomerProfilePage = () => {
         city: profile.addresses?.[0]?.city || '',
         state: profile.addresses?.[0]?.state || '',
         zipCode: profile.addresses?.[0]?.zipCode || '',
-        country: profile.addresses?.[0]?.country || 'DR Congo'
+        country: profile.addresses?.[0]?.country || 'DR Congo',
+        gender: profile.gender || 'female'
       });
     }
   };
@@ -301,7 +312,30 @@ const CustomerProfilePage = () => {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4 sm:space-y-6 pt-0">
+                  {/* Avatar Upload */}
+                  <div className="flex items-center gap-4 mb-6">
+                    <div className="relative">
+                      <div className="w-20 h-20 rounded-full bg-[#efebe9] flex items-center justify-center overflow-hidden border-2 border-[#4e342e]">
+                        {profile.avatar ? (
+                          <img src={profile.avatar} alt="Profile" className="w-full h-full object-cover" />
+                        ) : (
+                          <span className="text-2xl font-bold text-[#4e342e]">{profile.firstName?.charAt(0)}</span>
+                        )}
+                      </div>
+                      {isEditing && (
+                        <button className="absolute bottom-0 right-0 bg-[#4e342e] text-white p-1 rounded-full hover:bg-[#3b2c26]">
+                          <Edit className="w-3 h-3" />
+                        </button>
+                      )}
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-[#4e342e]">Profile Picture</h3>
+                      <p className="text-xs text-[#8d6e63]">Click to update</p>
+                    </div>
+                  </div>
+
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+
                     <div>
                       <Label htmlFor="firstName" className="text-[#6d4c41] font-medium text-sm sm:text-base">
                         First Name
@@ -363,16 +397,45 @@ const CustomerProfilePage = () => {
                       </div>
                     )}
                   </div>
+
+                  <div>
+                    <Label htmlFor="gender" className="text-[#6d4c41] font-medium">
+                      Gender
+                    </Label>
+                    {isEditing ? (
+                      <select
+                        id="gender"
+                        value={editForm.gender}
+                        onChange={(e) => setEditForm({ ...editForm, gender: e.target.value })}
+                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 mt-1"
+                      >
+                        <option value="female">Female</option>
+                        <option value="male">Male</option>
+                        <option value="other">Other</option>
+                      </select>
+                    ) : (
+                      <p className="mt-1 text-[#4e342e] font-medium capitalize">{profile.gender || 'Not specified'}</p>
+                    )}
+                  </div>
+
                 </CardContent>
               </Card>
 
               {/* Address Information */}
               <Card className="border-0 bg-white shadow-lg mt-6">
                 <CardHeader>
-                  <CardTitle className="text-xl font-serif font-bold text-[#4e342e] flex items-center">
-                    <MapPin className="w-5 h-5 mr-2" />
-                    Address Information
+                  <CardTitle className="text-xl font-serif font-bold text-[#4e342e] flex items-center justify-between">
+                    <div className="flex items-center">
+                      <MapPin className="w-5 h-5 mr-2" />
+                      Address Information
+                    </div>
+                    {isEditing && (
+                      <Button variant="outline" size="sm" className="text-xs border-[#4e342e] text-[#4e342e]">
+                        + Add New
+                      </Button>
+                    )}
                   </CardTitle>
+
                 </CardHeader>
                 <CardContent className="space-y-4">
                   {profile.addresses.map((address) => (

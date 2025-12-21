@@ -19,6 +19,7 @@ import RegisterPage from "@/pages/auth/RegisterPage";
 import CustomerDashboard from "@/pages/customer/Dashboard";
 import CustomerProfilePage from "@/pages/customer/ProfilePage";
 import CustomerBookingsPage from "@/pages/customer/BookingsPage";
+import AtHomeBookingDetailsPage from "@/pages/customer/AtHomeBookingDetailsPage";
 import AtHomeServicesPage from "@/pages/AtHomeServicesPage";
 import SalonVisitPage from "@/pages/SalonVisitPage";
 import BookingConfirmationPage from "@/pages/customer/BookingConfirmationPage";
@@ -65,6 +66,7 @@ import AtHomeAssignmentsPage from "@/pages/vendor/AtHomeAssignmentsPage";
 import AdminSettingsPage from "@/pages/admin/SettingsPage";
 import AdminProfilePage from "@/pages/admin/ProfilePage";
 import AdminAtHomeServicesPage from "@/pages/admin/AtHomeServicesPage";
+import AdminAtHomeBookingsPage from "@/pages/admin/AdminAtHomeBookingsPage";
 import AdminAtHomeProductsPage from "@/pages/admin/AtHomeProductsPage";
 import ManageAtHomeCatalog from "@/pages/admin/ManageAtHomeCatalog";
 import AuthTest from "@/pages/AuthTest";
@@ -232,6 +234,14 @@ const App = () => {
                           element={
                             <ProtectedRoute allowedRoles={["CUSTOMER"]}>
                               <CustomerBookingsPage />
+                            </ProtectedRoute>
+                          }
+                        />
+                        <Route
+                          path="/customer/athome-bookings/:id"
+                          element={
+                            <ProtectedRoute allowedRoles={["CUSTOMER"]}>
+                              <AtHomeBookingDetailsPage />
                             </ProtectedRoute>
                           }
                         />
@@ -544,6 +554,14 @@ const App = () => {
                           element={
                             <ProtectedRoute allowedRoles={["ADMIN"]}>
                               <AdminAtHomeProductsPage />
+                            </ProtectedRoute>
+                          }
+                        />
+                        <Route
+                          path="/admin/at-home-bookings"
+                          element={
+                            <ProtectedRoute allowedRoles={["ADMIN"]}>
+                              <AdminAtHomeBookingsPage />
                             </ProtectedRoute>
                           }
                         />

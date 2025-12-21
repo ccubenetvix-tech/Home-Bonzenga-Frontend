@@ -47,8 +47,9 @@ const AtHomeAssignmentsPage = () => {
         try {
             setLoading(true);
             const response = await api.get('/vendor/athome-assignments');
-            if (response.data.success) {
-                setAssignments(response.data.data);
+            const data = response.data as any;
+            if (data.success) {
+                setAssignments(data.data);
             } else {
                 toast.error('Failed to load assignments');
             }
@@ -65,8 +66,9 @@ const AtHomeAssignmentsPage = () => {
             setProcessingId(bookingId);
             const endpoint = action === 'accept' ? 'accept' : 'reject';
             const response = await api.post(`/vendor/athome-assignments/${bookingId}/${endpoint}`);
+            const data = response.data as any;
 
-            if (response.data.success) {
+            if (data.success) {
                 toast.success(`Booking ${action}ed successfully`);
                 fetchAssignments(); // Refresh
             } else {

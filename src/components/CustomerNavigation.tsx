@@ -13,7 +13,7 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import {
-  User,
+  User as UserIcon,
   Calendar,
   Settings,
   LogOut,
@@ -42,11 +42,10 @@ const CustomerNavigation: React.FC<CustomerNavigationProps> = ({ isScrolled = fa
   };
 
   return (
-    <nav className={`w-full px-4 lg:px-8 h-20 flex items-center justify-between transition-all duration-300 ${
-      isScrolled 
-        ? 'bg-white/95 backdrop-blur-md shadow-lg border-b border-[#f8d7da]/30' 
-        : 'bg-[#fdf6f0]/95 backdrop-blur-sm'
-    }`}>
+    <nav className={`w-full px-4 lg:px-8 h-20 flex items-center justify-between transition-all duration-300 ${isScrolled
+      ? 'bg-white/95 backdrop-blur-md shadow-lg border-b border-[#f8d7da]/30'
+      : 'bg-[#fdf6f0]/95 backdrop-blur-sm'
+      }`}>
       {/* Logo */}
       <div className="flex items-center">
         <Link to="/" className="flex items-center space-x-3">
@@ -100,7 +99,7 @@ const CustomerNavigation: React.FC<CustomerNavigationProps> = ({ isScrolled = fa
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" className="flex items-center space-x-2 p-2 hover:bg-[#f8d7da]/20">
               <Avatar className="h-8 w-8">
-                <AvatarImage src={user?.profileImage} alt={user?.firstName} />
+                <AvatarImage src={(user as any)?.profileImage} alt={user?.firstName} />
                 <AvatarFallback className="bg-[#4e342e] text-white text-sm">
                   {getInitials(user?.firstName || '', user?.lastName || '')}
                 </AvatarFallback>
@@ -118,46 +117,19 @@ const CustomerNavigation: React.FC<CustomerNavigationProps> = ({ isScrolled = fa
               <p className="text-sm font-medium text-gray-900">{user?.firstName} {user?.lastName}</p>
               <p className="text-xs text-gray-500">{user?.email}</p>
             </div>
-            
+
             <DropdownMenuItem asChild>
               <Link to="/customer/profile" className="flex items-center cursor-pointer">
-                <User className="w-4 h-4 mr-2" />
-                View Profile
-              </Link>
-            </DropdownMenuItem>
-            
-            <DropdownMenuItem asChild>
-              <Link to="/customer/bookings" className="flex items-center cursor-pointer">
-                <Calendar className="w-4 h-4 mr-2" />
-                My Bookings
-              </Link>
-            </DropdownMenuItem>
-            
-            <DropdownMenuItem asChild>
-              <Link to="/customer/profile/edit" className="flex items-center cursor-pointer">
                 <Settings className="w-4 h-4 mr-2" />
-                Manage Profile
+                Edit Profile
               </Link>
+
             </DropdownMenuItem>
 
-            <DropdownMenuSeparator />
-            
-            <DropdownMenuItem asChild>
-              <Link to="/customer/wishlist" className="flex items-center cursor-pointer">
-                <Heart className="w-4 h-4 mr-2" />
-                Wishlist
-              </Link>
-            </DropdownMenuItem>
-            
-            <DropdownMenuItem asChild>
-              <Link to="/customer/orders" className="flex items-center cursor-pointer">
-                <ShoppingBag className="w-4 h-4 mr-2" />
-                Order History
-              </Link>
-            </DropdownMenuItem>
 
             <DropdownMenuSeparator />
-            
+
+
             <DropdownMenuItem onClick={handleLogout} className="text-red-600 cursor-pointer">
               <LogOut className="w-4 h-4 mr-2" />
               Logout
@@ -174,12 +146,12 @@ const CustomerNavigation: React.FC<CustomerNavigationProps> = ({ isScrolled = fa
             3
           </Badge>
         </Button>
-        
+
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" size="sm" className="p-1">
               <Avatar className="h-8 w-8">
-                <AvatarImage src={user?.profileImage} alt={user?.firstName} />
+                <AvatarImage src={(user as any)?.profileImage} alt={user?.firstName} />
                 <AvatarFallback className="bg-[#4e342e] text-white text-sm">
                   {getInitials(user?.firstName || '', user?.lastName || '')}
                 </AvatarFallback>
@@ -191,37 +163,18 @@ const CustomerNavigation: React.FC<CustomerNavigationProps> = ({ isScrolled = fa
               <p className="text-sm font-medium text-gray-900">{user?.firstName} {user?.lastName}</p>
               <p className="text-xs text-gray-500">{user?.email}</p>
             </div>
-            
-            <DropdownMenuItem asChild>
-              <Link to="/customer" className="flex items-center cursor-pointer">
-                <User className="w-4 h-4 mr-2" />
-                Dashboard
-              </Link>
-            </DropdownMenuItem>
-            
+
             <DropdownMenuItem asChild>
               <Link to="/customer/profile" className="flex items-center cursor-pointer">
-                <User className="w-4 h-4 mr-2" />
-                View Profile
-              </Link>
-            </DropdownMenuItem>
-            
-            <DropdownMenuItem asChild>
-              <Link to="/customer/bookings" className="flex items-center cursor-pointer">
-                <Calendar className="w-4 h-4 mr-2" />
-                My Bookings
-              </Link>
-            </DropdownMenuItem>
-            
-            <DropdownMenuItem asChild>
-              <Link to="/customer/profile/edit" className="flex items-center cursor-pointer">
                 <Settings className="w-4 h-4 mr-2" />
-                Manage Profile
+                Edit Profile
               </Link>
+
             </DropdownMenuItem>
 
             <DropdownMenuSeparator />
-            
+
+
             <DropdownMenuItem onClick={handleLogout} className="text-red-600 cursor-pointer">
               <LogOut className="w-4 h-4 mr-2" />
               Logout
