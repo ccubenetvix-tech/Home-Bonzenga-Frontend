@@ -25,26 +25,45 @@ const VendorEmailVerificationPage: React.FC = () => {
       return;
     }
 
+    const navigate = useNavigate();
+    
     const verifyEmail = async () => {
       try {
         setLoading(true);
-        const response = await fetch(getApiUrl(`/vendors/verify?token=${encodeURIComponent(token)}`));
+        // Use generic auth verification endpoint (POST) that works for both customers and vendors
+        const response = await fetch(getApiUrl('/auth/verify-email'), {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ token }),
+        });
+        
         const data = await response.json().catch(() => ({}));
 
         if (response.ok) {
           setIsError(false);
-          setStatus(data.status || null);
-          setMessage(
-            data.message ||
-              (data.status === 'PENDING_APPROVAL'
-                ? t('auth.verifyEmail.pendingApproval')
-                : t('auth.verifyEmail.success'))
-          );
+          setStatus('VERIFIED');
+          setMessage(t('auth.verifyEmail.success') || 'Email verified successfully! Redirecting to login...');
+          
+          // Auto-redirect to login after 2 seconds
+          setTimeout(() => {
+            navigate('/login');
+          }, 2000);
         } else {
           setIsError(true);
-          setStatus(data.status || null);
-          setReason(data.reason || null);
-          setMessage(data.message || t('auth.verifyEmail.error'));
+          // Check if already verified (backend might return 400 with message)
+          if (data.message === 'Email already verified' || data.message?.includes('verified')) {
+             setIsError(false);
+             setMessage('Email already verified. Redirecting to login...');
+             setTimeout(() => {
+               navigate('/login');
+             }, 2000);
+          } else {
+             setStatus(null);
+             setReason(null);
+             setMessage(data.message || t('auth.verifyEmail.error'));
+          }
         }
       } catch (error) {
         console.error('Email verification error:', error);

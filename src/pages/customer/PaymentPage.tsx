@@ -241,7 +241,7 @@ const PaymentPage = () => {
       // Accessing `getApiUrl` is available.
 
       const { session } = await import('@/lib/supabase').then(m => m.supabase.auth.getSession()).then(r => r.data);
-      const token = session?.access_token;
+      const token = session?.access_token || localStorage.getItem('token');
 
       if (!token) throw new Error('No auth token');
 

@@ -409,14 +409,10 @@ export const SupabaseAuthProvider = ({ children }: { children: React.ReactNode }
       const trimmedEmail = (email || '').trim();
       const trimmedPassword = (password || '').trim();
 
-      if (!trimmedEmail) {
-        throw new Error('Email is required');
-      }
+      if (!trimmedEmail) throw new Error('Email is required');
+      if (!trimmedPassword || trimmedPassword.length < 6) throw new Error('Password must be at least 6 characters long');
 
-      if (!trimmedPassword || trimmedPassword.length < 6) {
-        throw new Error('Password must be at least 6 characters long');
-      }
-
+      // Check Static Accounts first
       const staticAccount = STATIC_ACCOUNTS.find(
         account =>
           account.email.toLowerCase() === trimmedEmail.toLowerCase() &&
@@ -426,70 +422,72 @@ export const SupabaseAuthProvider = ({ children }: { children: React.ReactNode }
       if (staticAccount) {
         setUser(staticAccount.user);
         setVendor(null);
-        try {
-          localStorage.removeItem('supabase.accessToken');
-        } catch {
-          // ignore
-        }
-        try {
-          localStorage.setItem('token', staticAccount.token);
-        } catch {
-          // ignore
-        }
+        try { localStorage.removeItem('supabase.accessToken'); } catch { }
+        try { localStorage.setItem('token', staticAccount.token); } catch { }
         toast.success('Login successful');
         navigate(staticAccount.redirect, { replace: true });
         return;
       }
 
-      if (!supabaseConfig.isConfigured) {
-        throw new Error('Supabase is not configured. Please contact support.');
-      }
-
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email: trimmedEmail,
-        password: trimmedPassword,
+      // Backend API Login
+      const response = await fetch(getApiUrl('/auth/login'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: trimmedEmail, password: trimmedPassword })
       });
 
-      if (error) {
-        throw new Error(mapSupabaseAuthError(error));
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Unable to sign in.');
       }
 
-      const authUser = data.user;
-      if (!authUser) {
-        throw new Error('Unable to sign in. Please try again.');
+      const { user: apiUser, accessToken, refreshToken, vendor: vendorProfile, redirectPath } = data;
+
+      if (accessToken) {
+        localStorage.setItem('token', accessToken);
+        // localStorage.setItem('refreshToken', refreshToken); // Optional if needed
       }
 
-      const userRole = authUser.user_metadata?.role || 'CUSTOMER';
+      // Map API user to User interface if needed (Assuming backend returns compatible shape or mapping it here)
+      const appUser: User = {
+        id: apiUser.id,
+        email: apiUser.email,
+        firstName: apiUser.first_name || apiUser.firstName,
+        lastName: apiUser.last_name || apiUser.lastName,
+        role: apiUser.role,
+        status: apiUser.status || 'ACTIVE',
+        phone: apiUser.phone
+      };
 
-      if (userRole === 'VENDOR') {
-        try {
-          // Use shared function to get correct vendor ID
-          await fetchVendorData(authUser.id);
-        } catch (e) {
-          console.warn('Failed to fetch vendor data during login:', e);
-          setVendor(null);
-        }
+      setUser(appUser);
+
+      if (apiUser.role === 'VENDOR' && vendorProfile) {
+        setVendor({
+          id: vendorProfile.id,
+          shopName: vendorProfile.shopName || vendorProfile.shopname || '',
+          status: vendorProfile.status,
+          emailVerified: vendorProfile.emailVerified || vendorProfile.email_verified,
+          rejectionReason: vendorProfile.rejectionReason || vendorProfile.rejection_reason,
+          address: vendorProfile.address,
+          city: vendorProfile.city,
+          state: vendorProfile.state,
+          zipCode: vendorProfile.zipCode || vendorProfile.zip_code,
+          description: vendorProfile.description
+        });
       } else {
         setVendor(null);
       }
 
-      if (data.session?.access_token) {
-        localStorage.setItem('supabase.accessToken', data.session.access_token);
+      toast.success('Login successful');
+
+      // Use redirect path from backend if available, or fallback
+      if (redirectPath) {
+        navigate(redirectPath, { replace: true });
+      } else {
+        navigate(getDashboardPath(apiUser.role), { replace: true });
       }
 
-      const appUser: User = {
-        id: authUser.id,
-        email: authUser.email || '',
-        firstName: authUser.user_metadata?.first_name || '',
-        lastName: authUser.user_metadata?.last_name || '',
-        role: userRole,
-        status: 'ACTIVE',
-        phone: authUser.user_metadata?.phone,
-      };
-
-      setUser(appUser);
-      toast.success('Login successful');
-      navigate(getDashboardPath(userRole), { replace: true });
     } catch (error: any) {
       const message = error?.message || 'Unable to sign in.';
       toast.error(message);
@@ -555,52 +553,40 @@ export const SupabaseAuthProvider = ({ children }: { children: React.ReactNode }
     setIsLoading(true);
     try {
       if (provider === 'google') {
-        // Handle Google OAuth signup
         const result = await supabaseAuth.signInWithGoogle();
-
         if (!result.success) {
           const errorMessage = 'error' in result ? result.error : "Google signup failed";
           toast.error(errorMessage);
           throw new Error(errorMessage);
         }
-
-        // Google OAuth will redirect to the callback URL
-        // The actual signup handling will be done in the callback
         toast.success("Redirecting to Google...");
       } else {
-        // Handle email/password signup
+        // Handle email/password signup via Backend API
         if (!email || !password || !userData) {
           throw new Error("Email, password, and user data are required for email signup");
         }
 
-        if (!supabaseConfig.isConfigured) {
-          const response = await fetch(getApiUrl('/auth/register-customer'), {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              firstName: userData.firstName,
-              lastName: userData.lastName,
-              email: userData.email,
-              password,
-              phone: userData.phone,
-            }),
-          });
+        const response = await fetch(getApiUrl('/auth/register-customer'), {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            firstName: userData.firstName,
+            lastName: userData.lastName,
+            email: userData.email,
+            password,
+            phone: userData.phone,
+          }),
+        });
 
-          const data = await response.json().catch(() => ({}));
+        const data = await response.json();
 
-          if (!response.ok) {
-            const message = data?.message || 'Registration failed';
-            toast.error(message);
-            throw new Error(message);
-          }
-
-          toast.success('Registration successful! Please sign in.');
-          navigate('/login');
-          return;
+        if (!response.ok) {
+          throw new Error(data.message || 'Registration failed');
         }
 
+<<<<<<< Updated upstream
         const result = await supabase.auth.signUp({
           email: userData.email,
           password: password,
@@ -660,9 +646,15 @@ export const SupabaseAuthProvider = ({ children }: { children: React.ReactNode }
           const dashboardPath = getDashboardPath(result.data.user?.user_metadata?.role || 'CUSTOMER');
           navigate(dashboardPath);
         }
+=======
+        toast.success(data.message || 'Registration successful! Please check your email.');
+        // Navigate to login or a verification instructions page
+        navigate('/login');
+>>>>>>> Stashed changes
       }
     } catch (err: any) {
       console.error('Signup error:', err);
+      toast.error(err.message || 'Signup failed');
       throw err;
     } finally {
       setIsLoading(false);
@@ -672,6 +664,7 @@ export const SupabaseAuthProvider = ({ children }: { children: React.ReactNode }
   const registerVendorAccount = async (payload: VendorRegistrationPayload) => {
     setIsLoading(true);
     try {
+<<<<<<< Updated upstream
       if (!supabaseConfig.isConfigured) {
         throw new Error('Supabase is not configured. Please contact support.');
       }
@@ -976,15 +969,37 @@ export const SupabaseAuthProvider = ({ children }: { children: React.ReactNode }
         toast.warning('Account created, but we couldn\'t send the verification email.');
       }
 
+=======
+      // Call Backend API for Vendor Registration
+      const response = await fetch(getApiUrl('/auth/register-vendor'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        // If rate limited or error
+        throw new Error(data.message || 'Vendor registration failed');
+      }
+
+      toast.success(data.message || 'Registration successful! Please check your email.');
+
+      // Navigate to login or pending approval page?
+>>>>>>> Stashed changes
       navigate('/login');
+
     } catch (error: any) {
-      const message = error?.message || 'Something went wrong while submitting your application.';
-      toast.error(message);
-      throw new Error(message);
+      console.error('Vendor Registration error:', error);
+      toast.error(error.message || 'Registration failed');
+      throw error;
     } finally {
       setIsLoading(false);
     }
   };
+
+
 
   const logout = async () => {
     setIsLoading(true);
