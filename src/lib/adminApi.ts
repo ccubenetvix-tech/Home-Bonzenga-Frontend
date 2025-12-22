@@ -239,6 +239,13 @@ export const adminApi = {
       method: 'DELETE',
     });
   },
+
+  /**
+   * Get all at-salon services (Admin view)
+   */
+  async getAtSalonServices() {
+    return apiRequest<{ orders: any[], count: number }>('/admin/at-salon-services');
+  },
 };
 
 export default adminApi;

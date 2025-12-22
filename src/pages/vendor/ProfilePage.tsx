@@ -8,7 +8,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { motion } from 'framer-motion';
 import DashboardLayout from '@/components/DashboardLayout';
-import { 
+import {
   User,
   Building,
   MapPin,
@@ -103,7 +103,7 @@ const ProfilePage = () => {
           'Content-Type': 'application/json'
         }
       });
-      
+
       if (response.ok) {
         const data = await response.json();
         setProfile(data);
@@ -123,56 +123,7 @@ const ProfilePage = () => {
           numberOfEmployees: 1 // data.numberOfEmployees if available
         });
       } else {
-        // Fallback to mock data if API fails
-        const mockProfile: VendorProfile = {
-          id: user?.id || '1',
-          user: {
-            firstName: 'Sarah',
-            lastName: 'Johnson',
-            email: 'sarah.johnson@email.com',
-            phone: '+1 (555) 123-4567'
-          },
-          shopname: 'Elegant Beauty Salon',
-          description: 'A premium beauty salon offering comprehensive hair, skin, and nail care services with a focus on personalized treatments and exceptional customer experience.',
-          address: '123 Main Street',
-          city: 'New York',
-          state: 'NY',
-          zipCode: '10001',
-          businessType: 'salon',
-          yearsInBusiness: 5,
-          numberOfEmployees: 8,
-          servicesOffered: ['Hair Styling', 'Facial Treatments', 'Makeup', 'Nail Care', 'Manicure', 'Pedicure'],
-          operatingHours: {
-            monday: { open: '09:00', close: '18:00' },
-            tuesday: { open: '09:00', close: '18:00' },
-            wednesday: { open: '09:00', close: '18:00' },
-            thursday: { open: '09:00', close: '18:00' },
-            friday: { open: '09:00', close: '18:00' },
-            saturday: { open: '09:00', close: '17:00' },
-            sunday: { open: '10:00', close: '16:00' }
-          },
-          rating: 4.8,
-          totalReviews: 127,
-          isVerified: true,
-          status: 'APPROVED',
-          createdAt: '2024-01-01T00:00:00Z'
-        };
-        setProfile(mockProfile);
-        setFormData({
-          firstName: mockProfile.user.firstName,
-          lastName: mockProfile.user.lastName,
-          email: mockProfile.user.email,
-          phone: mockProfile.user.phone,
-          shopname: mockProfile.shopname,
-          description: mockProfile.description,
-          address: mockProfile.address,
-          city: mockProfile.city,
-          state: mockProfile.state,
-          zipCode: mockProfile.zipCode,
-          businessType: mockProfile.businessType,
-          yearsInBusiness: mockProfile.yearsInBusiness,
-          numberOfEmployees: mockProfile.numberOfEmployees
-        });
+        toast.error('Could not load profile information');
       }
     } catch (error) {
       console.error('Error fetching profile:', error);
@@ -313,7 +264,7 @@ const ProfilePage = () => {
                     <h3 className="text-xl font-semibold text-[#4e342e]">{profile.shopName}</h3>
                     <p className="text-[#6d4c41]">{profile.user.firstName} {profile.user.lastName}</p>
                   </div>
-                  
+
                   <div className="space-y-3">
                     <div className="flex items-center space-x-3">
                       <Star className="w-4 h-4 text-yellow-500" />
@@ -388,7 +339,7 @@ const ProfilePage = () => {
                           />
                         </div>
                       </div>
-                      
+
                       <div>
                         <Label htmlFor="shopname" className="text-[#4e342e] font-medium">Shop/Salon Name</Label>
                         <Input
@@ -399,7 +350,7 @@ const ProfilePage = () => {
                           required
                         />
                       </div>
-                      
+
                       <div>
                         <Label htmlFor="description" className="text-[#4e342e] font-medium">Business Description</Label>
                         <Textarea
@@ -411,7 +362,7 @@ const ProfilePage = () => {
                           required
                         />
                       </div>
-                      
+
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div>
                           <Label htmlFor="businessType" className="text-[#4e342e] font-medium">Business Type</Label>
@@ -452,7 +403,7 @@ const ProfilePage = () => {
                           />
                         </div>
                       </div>
-                      
+
                       <div className="flex justify-end space-x-3">
                         <Button
                           type="button"
@@ -497,7 +448,7 @@ const ProfilePage = () => {
                             </div>
                           </div>
                         </div>
-                        
+
                         <div>
                           <h4 className="font-semibold text-[#4e342e] mb-2">Business Details</h4>
                           <div className="space-y-2 text-[#6d4c41]">
@@ -512,7 +463,7 @@ const ProfilePage = () => {
                           </div>
                         </div>
                       </div>
-                      
+
                       <div>
                         <h4 className="font-semibold text-[#4e342e] mb-2">Address</h4>
                         <div className="flex items-start space-x-2 text-[#6d4c41]">
@@ -523,12 +474,12 @@ const ProfilePage = () => {
                           </div>
                         </div>
                       </div>
-                      
+
                       <div>
                         <h4 className="font-semibold text-[#4e342e] mb-2">Business Description</h4>
                         <p className="text-[#6d4c41]">{profile.description || 'No description available'}</p>
                       </div>
-                      
+
                       <div>
                         <h4 className="font-semibold text-[#4e342e] mb-2">Services Offered</h4>
                         <div className="flex flex-wrap gap-2">
@@ -550,7 +501,7 @@ const ProfilePage = () => {
             </motion.div>
           </div>
 
-          {/* Operating Hours */}
+          {/* Operating Hours
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -581,7 +532,7 @@ const ProfilePage = () => {
                 </div>
               </CardContent>
             </Card>
-          </motion.div>
+          </motion.div> */}
         </motion.div>
       </div>
     </DashboardLayout>

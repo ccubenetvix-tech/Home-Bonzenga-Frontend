@@ -61,6 +61,7 @@ import AdminVendorsPage from "@/pages/admin/VendorsPage";
 import AdminVendorDetailsPage from "@/pages/admin/VendorDetailsPage";
 import AdminManagersPage from "@/pages/admin/ManagersPage";
 import AdminBeauticiansPage from "@/pages/admin/AdminBeauticiansPage"; // Correct import placement
+import AdminAtSalonServicesPage from "@/pages/admin/AdminAtSalonServicesPage";
 import AtHomeBookingsPage from "@/pages/manager/AtHomeBookingsPage";
 import AtHomeAssignmentsPage from "@/pages/vendor/AtHomeAssignmentsPage";
 import AdminSettingsPage from "@/pages/admin/SettingsPage";
@@ -498,6 +499,14 @@ const App = () => {
                           element={
                             <ProtectedRoute allowedRoles={["ADMIN"]}>
                               <AdminVendorsPage />
+                            </ProtectedRoute>
+                          }
+                        />
+                        <Route
+                          path="/admin/at-salon-services"
+                          element={
+                            <ProtectedRoute allowedRoles={["ADMIN"]}>
+                              <AdminAtSalonServicesPage />
                             </ProtectedRoute>
                           }
                         />

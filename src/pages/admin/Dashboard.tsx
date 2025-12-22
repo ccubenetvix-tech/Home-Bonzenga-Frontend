@@ -122,6 +122,7 @@ const AdminDashboard = () => {
   const [processingVendor, setProcessingVendor] = useState<string | null>(null);
 
   const [financeStats, setFinanceStats] = useState<any>(null);
+  const [salonSummary, setSalonSummary] = useState<{ count: number; lastBooking: string | null; pending: number; completed: number } | null>(null);
 
   useEffect(() => {
     fetchAdminData();
@@ -130,6 +131,19 @@ const AdminDashboard = () => {
       // @ts-ignore
       if (res.data?.success) setFinanceStats(res.data.data);
     }).catch(e => console.error("Error fetching finance stats:", e));
+
+    // Fetch Salon Summary
+    api.get('/admin/at-salon-services').then((res: any) => {
+      if (res.data?.success) {
+        const orders = res.data.orders || [];
+        setSalonSummary({
+          count: orders.length,
+          lastBooking: orders.length > 0 ? orders[0].createdAt : null,
+          pending: orders.filter((o: any) => o.bookingStatus === 'PENDING').length,
+          completed: orders.filter((o: any) => o.bookingStatus === 'COMPLETED').length
+        });
+      }
+    }).catch(e => console.error("Error fetching salon summary:", e));
   }, []);
 
   const fetchAdminData = async () => {
@@ -602,43 +616,6 @@ const AdminDashboard = () => {
               </CardContent>
             </Card>
 
-            <Card className="border-0 bg-white shadow-lg hover:shadow-xl transition-all duration-300 rounded-lg">
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-[#6d4c41]">At-Home Bookings</p>
-                    <p className="text-2xl font-bold text-[#4e342e]">{stats.atHomeBookings}</p>
-                    <div className="flex items-center mt-2">
-                      <Badge className="bg-[#f8d7da]/30 text-[#4e342e] text-xs">
-                        {stats.completedBookings} Completed
-                      </Badge>
-                    </div>
-                  </div>
-                  <div className="w-12 h-12 bg-gradient-to-br from-[#4e342e] to-[#6d4c41] rounded-lg flex items-center justify-center">
-                    <Home className="w-6 h-6 text-white" />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="border-0 bg-white shadow-lg hover:shadow-xl transition-all duration-300 rounded-lg">
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-[#6d4c41]">Salon Bookings</p>
-                    <p className="text-2xl font-bold text-[#4e342e]">{stats.salonBookings}</p>
-                    <div className="flex items-center mt-2">
-                      <Badge className="bg-[#f8d7da]/30 text-[#4e342e] text-xs">
-                        Salon Visits
-                      </Badge>
-                    </div>
-                  </div>
-                  <div className="w-12 h-12 bg-gradient-to-br from-[#4e342e] to-[#6d4c41] rounded-lg flex items-center justify-center">
-                    <Building className="w-6 h-6 text-white" />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
             <Card className="border-0 bg-white shadow-lg hover:shadow-xl transition-all duration-300 rounded-lg cursor-pointer" onClick={() => window.location.href = '/admin/at-home-bookings'}>
               <CardContent className="p-6">
                 <div className="flex items-center justify-between">
@@ -646,13 +623,31 @@ const AdminDashboard = () => {
                     <p className="text-sm font-medium text-[#6d4c41]">Bookings Monitor</p>
                     <p className="text-2xl font-bold text-[#4e342e]">Live View</p>
 
-                    <div className="flex items-center mt-2">
-                      <Eye className="w-4 h-4 text-[#6d4c41] mr-1" />
-                      <span className="text-sm text-[#6d4c41]">View all active bookings</span>
+                    <div className="flex items-center mt-2 text-primary font-medium text-xs">
+                      View all salon bookings <ArrowRight className="w-3 h-3 ml-1" />
                     </div>
                   </div>
                   <div className="w-12 h-12 bg-gradient-to-br from-[#4e342e] to-[#6d4c41] rounded-lg flex items-center justify-center">
                     <Activity className="w-6 h-6 text-white" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+            <Card className="border-0 bg-white shadow-lg hover:shadow-xl transition-all duration-300 rounded-lg cursor-pointer" onClick={() => window.location.href = '/admin/at-salon-services'}>
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-[#6d4c41]">Salon Services Monitor</p>
+                    <p className="text-2xl font-bold text-[#4e342e]">Live Salon Bookings</p>
+
+                    <div className="flex flex-col mt-2">
+                      <div className="flex items-center mt-2 text-primary font-medium text-xs">
+                        View all salon bookings <ArrowRight className="w-3 h-3 ml-1" />
+                      </div>
+                    </div>
+                  </div>
+                  <div className="w-12 h-12 bg-gradient-to-br from-[#4e342e] to-[#6d4c41] rounded-lg flex items-center justify-center">
+                    <Scissors className="w-6 h-6 text-white" />
                   </div>
                 </div>
               </CardContent>
@@ -736,120 +731,6 @@ const AdminDashboard = () => {
             </Card>
           </div>
         )}
-
-        {/* Recent Activity */}
-        <div className="mb-8">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-2xl font-serif font-bold text-[#4e342e]">Recent Activity</h2>
-            <Link to="/admin/activities">
-              <Button variant="outline" className="border-[#4e342e] text-[#4e342e] hover:bg-[#4e342e] hover:text-white">
-                <Eye className="w-4 h-4 mr-2" />
-                View All Activity
-              </Button>
-            </Link>
-          </div>
-
-          <Card className="border-0 bg-white shadow-lg">
-            <CardContent className="p-0">
-              <div className="divide-y divide-[#f8d7da]">
-                {recentActivity.length === 0 ? (
-                  <div className="p-8 text-center text-[#6d4c41]">
-                    <Activity className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                    <p>No recent activity found</p>
-                  </div>
-                ) : (
-                  recentActivity.map((activity) => (
-                    <div key={activity.id} className="p-4 hover:bg-[#fdf6f0] transition-colors">
-                      <div className="flex items-start space-x-3">
-                        <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${activity.status === 'success' ? 'bg-green-500' :
-                          activity.status === 'pending' ? 'bg-yellow-500' :
-                            activity.status === 'failed' ? 'bg-red-500' :
-                              activity.status === 'cancelled' ? 'bg-gray-500' :
-                                'bg-[#4e342e]'
-                          }`}>
-                          {getStatusIcon(activity.type)}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-start justify-between gap-2">
-                            <div className="flex-1">
-                              <p className="text-sm font-medium text-[#4e342e] mb-1">{activity.description}</p>
-                              <p className="text-xs text-[#6d4c41] mb-2">
-                                {new Date(activity.timestamp).toLocaleString('en-US', {
-                                  year: 'numeric',
-                                  month: 'short',
-                                  day: 'numeric',
-                                  hour: '2-digit',
-                                  minute: '2-digit'
-                                })}
-                              </p>
-
-                              {/* User Info */}
-                              {activity.user && (
-                                <div className="space-y-1 mb-2">
-                                  <p className="text-xs text-[#4e342e] font-medium">{activity.user.name}</p>
-                                  {activity.user.email && (
-                                    <p className="text-xs text-[#6d4c41] flex items-center gap-1">
-                                      <Mail className="w-3 h-3" />
-                                      {activity.user.email}
-                                    </p>
-                                  )}
-                                  {activity.user.phone && (
-                                    <p className="text-xs text-[#6d4c41] flex items-center gap-1">
-                                      <Phone className="w-3 h-3" />
-                                      {activity.user.phone}
-                                    </p>
-                                  )}
-                                </div>
-                              )}
-
-                              {/* Vendor Info */}
-                              {activity.vendor && (
-                                <div className="space-y-1 mb-2">
-                                  <p className="text-xs text-[#4e342e] font-medium">{activity.vendor.businessName}</p>
-                                  <p className="text-xs text-[#6d4c41]">{activity.vendor.name}</p>
-                                  {activity.vendor.email && (
-                                    <p className="text-xs text-[#6d4c41] flex items-center gap-1">
-                                      <Mail className="w-3 h-3" />
-                                      {activity.vendor.email}
-                                    </p>
-                                  )}
-                                </div>
-                              )}
-
-                              {/* Amount */}
-                              {activity.amount !== undefined && activity.amount > 0 && (
-                                <p className="text-sm text-[#4e342e] font-semibold mb-1">
-                                  ${activity.amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                                </p>
-                              )}
-
-                              {/* Booking Type */}
-                              {activity.bookingType && (
-                                <Badge variant="outline" className="text-xs mt-1">
-                                  {activity.bookingType === 'AT_HOME' ? 'At-Home Service' : 'Salon Visit'}
-                                </Badge>
-                              )}
-                            </div>
-                            <div className="flex flex-col items-end gap-2 flex-shrink-0">
-                              {activity.status && (
-                                <Badge className={getStatusBadgeColor(activity.status)}>
-                                  {activity.status.charAt(0).toUpperCase() + activity.status.slice(1)}
-                                </Badge>
-                              )}
-                              <Badge className="bg-[#4e342e] text-white text-xs">
-                                {activity.type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
-                              </Badge>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  ))
-                )}
-              </div>
-            </CardContent>
-          </Card>
-        </div>
 
         {/* At-Home Catalog Management Section */}
         <div className="mb-12">
