@@ -1,9 +1,9 @@
-import React, { Suspense } from "react";
-import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
+import React, { Suspense, useEffect } from "react";
+import { BrowserRouter, Routes, Route, useLocation, useNavigate } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { SupabaseAuthProvider } from "@/contexts/SupabaseAuthContext";
+import { SupabaseAuthProvider, useSupabaseAuth } from "@/contexts/SupabaseAuthContext";
 import { CartProvider } from "@/contexts/CartContext";
 import { BookingProvider } from "@/contexts/BookingContext";
 import Footer from "@/components/Footer";
@@ -16,6 +16,7 @@ import { supabaseConfig } from "@/config/supabase";
 import LandingPage from "@/pages/LandingPage";
 import LoginPage from "@/pages/auth/LoginPage";
 import RegisterPage from "@/pages/auth/RegisterPage";
+import VerifyPage from "@/pages/auth/VerifyPage";
 import CustomerDashboard from "@/pages/customer/Dashboard";
 import CustomerProfilePage from "@/pages/customer/ProfilePage";
 import CustomerBookingsPage from "@/pages/customer/BookingsPage";
@@ -63,7 +64,6 @@ import AdminManagersPage from "@/pages/admin/ManagersPage";
 import AdminBeauticiansPage from "@/pages/admin/AdminBeauticiansPage"; // Correct import placement
 import AdminAtSalonServicesPage from "@/pages/admin/AdminAtSalonServicesPage";
 import AtHomeBookingsPage from "@/pages/manager/AtHomeBookingsPage";
-import AtHomeAssignmentsPage from "@/pages/vendor/AtHomeAssignmentsPage";
 import AdminSettingsPage from "@/pages/admin/SettingsPage";
 import AdminProfilePage from "@/pages/admin/ProfilePage";
 import AdminAtHomeServicesPage from "@/pages/admin/AtHomeServicesPage";
@@ -111,7 +111,23 @@ const LoadingSpinner = () => (
 // Main content wrapper that conditionally applies padding
 const MainContent = ({ children }: { children: React.ReactNode }) => {
   const location = useLocation();
+  const navigate = useNavigate();
+  const { user } = useSupabaseAuth();
   const isAuthPage = location.pathname === '/login' || location.pathname === '/register';
+
+  useEffect(() => {
+    if (user && user.role !== 'CUSTOMER' && location.pathname === '/') {
+      const getRedirectPath = (role: string) => {
+        switch (role) {
+          case 'ADMIN': return '/admin';
+          case 'MANAGER': return '/manager';
+          case 'VENDOR': return '/vendor';
+          default: return '/customer';
+        }
+      };
+      navigate(getRedirectPath(user.role), { replace: true });
+    }
+  }, [user, location.pathname, navigate]);
 
   return (
     <main className={`flex-1 ${isAuthPage ? '' : 'pt-20'}`}>
@@ -155,7 +171,7 @@ const App = () => {
                         <Route path="/supabase-test" element={<SupabaseTest />} />
                         <Route path="/auth/callback" element={<OAuthCallbackPage />} />
                         <Route path="/auth/confirm-email" element={<EmailConfirmationCallback />} />
-                        <Route path="/auth/verify" element={<EmailConfirmationCallback />} />
+                        <Route path="/auth/verify" element={<VerifyPage />} />
                         <Route path="/verify-email" element={<VendorEmailVerificationPage />} />
                         <Route path="/at-home-services" element={<AtHomeIntroPage />} />
                         <Route path="/salon-visit" element={<SalonVisitPage />} />
@@ -441,16 +457,6 @@ const App = () => {
                           element={
                             <ProtectedRoute allowedRoles={["MANAGER"]}>
                               <AtHomeBookingsPage />
-                            </ProtectedRoute>
-                          }
-                        />
-                        <Route
-                          path="/vendor/at-home-assignments"
-                          element={
-                            <ProtectedRoute allowedRoles={["VENDOR"]}>
-                              <ProtectedVendorRoute>
-                                <AtHomeAssignmentsPage />
-                              </ProtectedVendorRoute>
                             </ProtectedRoute>
                           }
                         />

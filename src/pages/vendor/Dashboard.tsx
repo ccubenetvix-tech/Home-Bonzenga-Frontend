@@ -14,7 +14,6 @@ import {
   DollarSign,
   User,
   Plus,
-  Eye,
   TrendingUp,
   Package,
   CheckCircle,
@@ -331,11 +330,6 @@ const VendorDashboard = () => {
                           <Badge className={`px-3 py-1 ${getStatusColor(appointment.status)}`}>
                             {appointment.status}
                           </Badge>
-                          <Link to={`/vendor/appointments/${appointment.id}`}>
-                            <Button size="sm" variant="outline" className="border-[#4e342e] text-[#4e342e] hover:bg-[#4e342e] hover:text-white">
-                              <Eye className="w-3 h-3" />
-                            </Button>
-                          </Link>
                         </div>
                       </div>
                     ))

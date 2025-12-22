@@ -40,7 +40,7 @@ const AUTH_ERROR_MESSAGES: Record<string, string> = {
   'database error saving new user': 'We were unable to save your account. Please try again shortly.',
   'invalid login credentials': 'Invalid email or password.',
   'invalid email or password': 'Invalid email or password.',
-  'email not confirmed': 'Please confirm your email before logging in.',
+  'email not confirmed': 'Please verify your email to continue.',
   'signup disabled': 'Email signups are currently disabled.',
   'db error saving user': 'We were unable to save your account. Please try again shortly.',
   'password should be at least 6 characters': 'Password must be at least 6 characters long.'
@@ -237,7 +237,7 @@ export class SupabaseAuthService {
         if (authError.message.includes('Email not confirmed') ||
           authError.message.includes('email_not_confirmed') ||
           authError.message.includes('signup_disabled')) {
-          throw new Error('Please confirm your email address before logging in. Check your inbox for the confirmation link and click it to verify your email.')
+          throw new Error('Please verify your email to continue.')
         } else if (authError.message.includes('Invalid login credentials') ||
           authError.message.includes('Invalid credentials') ||
           authError.message.includes('Invalid password') ||
@@ -284,7 +284,8 @@ export class SupabaseAuthService {
 
       // Get metadata once (used in multiple places)
       const metadata = authData.user.user_metadata || {};
-      const rawMetadata = authData.user.raw_user_meta_data || {};
+      const firstName = metadata.first_name || 'User';
+      const lastName = metadata.last_name || '';
 
       // If profile doesn't exist, try to create it from auth metadata
       // Use upsert to handle race conditions (trigger might create user simultaneously)
@@ -313,9 +314,9 @@ export class SupabaseAuthService {
               .upsert({
                 id: authData.user.id,
                 email: authData.user.email || '',
-                first_name: metadata.first_name || rawMetadata.first_name || 'User',
-                last_name: metadata.last_name || rawMetadata.last_name || '',
-                role: (metadata.role || rawMetadata.role || 'CUSTOMER').toUpperCase(),
+                first_name: firstName,
+                last_name: lastName,
+                role: (metadata.role || 'CUSTOMER').toUpperCase(),
                 status: 'ACTIVE'
               }, {
                 onConflict: 'id' // Use id as conflict resolution key
@@ -331,7 +332,7 @@ export class SupabaseAuthService {
               console.log('✅ User profile created successfully');
             } else if (upsertResult.error) {
               // Handle 409 Conflict error - user was created by trigger
-              if (upsertResult.error.code === '23505' || upsertResult.error.message?.includes('duplicate') || upsertResult.error.status === 409) {
+              if (upsertResult.error.code === '23505' || upsertResult.error.message?.includes('duplicate') || (upsertResult.error as any).status === 409) {
                 console.log('⚠️ User already exists (likely created by trigger), fetching...');
                 // Fetch the user that was created
                 const conflictFetchResult = await supabase
@@ -386,9 +387,9 @@ export class SupabaseAuthService {
       const fallbackUser: User = {
         id: authData.user.id,
         email: authData.user.email || '',
-        firstName: metadata.first_name || rawMetadata.first_name || 'User',
-        lastName: metadata.last_name || rawMetadata.last_name || '',
-        role: (metadata.role || rawMetadata.role || 'CUSTOMER').toUpperCase() as "ADMIN" | "MANAGER" | "VENDOR" | "CUSTOMER",
+        firstName: firstName,
+        lastName: lastName,
+        role: (metadata.role || 'CUSTOMER').toUpperCase() as "ADMIN" | "MANAGER" | "VENDOR" | "CUSTOMER",
         status: 'ACTIVE'
       };
 
@@ -423,7 +424,7 @@ export class SupabaseAuthService {
       });
 
       const userPromise = supabase.auth.getUser();
-      const { data: { user: authUser }, error: authError } = await Promise.race([userPromise, timeoutPromise]);
+      const { data: { user: authUser }, error: authError } = await Promise.race([userPromise, timeoutPromise]) as any;
 
       if (authError) {
         console.warn('Auth error (not critical):', authError.message);
@@ -447,19 +448,18 @@ export class SupabaseAuthService {
           .eq('id', authUser.id)
           .maybeSingle();
 
-        const { data: userData, error: userError } = await Promise.race([profilePromise, timeoutPromise]);
+        const { data: userData, error: userError } = await Promise.race([profilePromise, timeoutPromise]) as any;
 
         if (userError) {
           console.warn('User profile fetch error:', userError.message);
           // Fallback: return user from auth metadata
           const metadata = authUser.user_metadata || {};
-          const rawMetadata = authUser.raw_user_meta_data || {};
           const fallbackUser: User = {
             id: authUser.id,
             email: authUser.email || '',
-            firstName: metadata.first_name || rawMetadata.first_name || 'User',
-            lastName: metadata.last_name || rawMetadata.last_name || '',
-            role: (metadata.role || rawMetadata.role || 'CUSTOMER').toUpperCase() as "ADMIN" | "MANAGER" | "VENDOR" | "CUSTOMER",
+            firstName: metadata.first_name || 'User',
+            lastName: metadata.last_name || '',
+            role: (metadata.role || 'CUSTOMER').toUpperCase() as "ADMIN" | "MANAGER" | "VENDOR" | "CUSTOMER",
             status: 'ACTIVE'
           };
           return handleSupabaseSuccess(fallbackUser)
@@ -469,13 +469,12 @@ export class SupabaseAuthService {
           console.log('No user data found in database');
           // Fallback: return user from auth metadata
           const metadata = authUser.user_metadata || {};
-          const rawMetadata = authUser.raw_user_meta_data || {};
           const fallbackUser: User = {
             id: authUser.id,
             email: authUser.email || '',
-            firstName: metadata.first_name || rawMetadata.first_name || 'User',
-            lastName: metadata.last_name || rawMetadata.last_name || '',
-            role: (metadata.role || rawMetadata.role || 'CUSTOMER').toUpperCase() as "ADMIN" | "MANAGER" | "VENDOR" | "CUSTOMER",
+            firstName: metadata.first_name || 'User',
+            lastName: metadata.last_name || '',
+            role: (metadata.role || 'CUSTOMER').toUpperCase() as "ADMIN" | "MANAGER" | "VENDOR" | "CUSTOMER",
             status: 'ACTIVE'
           };
           return handleSupabaseSuccess(fallbackUser)
@@ -780,6 +779,7 @@ export class SupabaseAuthService {
       phone: dbUser.phone,
       vendor: dbUser.vendor ? {
         id: dbUser.vendor.id,
+        shopName: dbUser.vendor.shopname,
         shopname: dbUser.vendor.shopname,
         status: dbUser.vendor.status
       } : undefined,

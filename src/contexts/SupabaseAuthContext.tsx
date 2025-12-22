@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { supabaseAuth, User, RegisterData, mapSupabaseAuthError, delay } from "@/lib/supabaseAuth";
 import { api } from "@/lib/api";
 import { supabase } from "@/lib/supabase";
+import { sendVerificationEmail } from "@/lib/emailjs";
 import { mockAuth } from "@/lib/mockAuth";
 import { supabaseConfig } from "@/config/supabase";
 import { getApiUrl } from "@/config/env";
@@ -600,25 +601,64 @@ export const SupabaseAuthProvider = ({ children }: { children: React.ReactNode }
           return;
         }
 
-        const result = await supabaseAuth.signUp(userData);
+        const result = await supabase.auth.signUp({
+          email: userData.email,
+          password: password,
+          options: {
+            data: {
+              first_name: userData.firstName,
+              last_name: userData.lastName,
+              phone: userData.phone,
+              role: 'CUSTOMER',
+              status: 'PENDING_VERIFICATION'
+            },
+            emailRedirectTo: `${window.location.origin}/auth/verify`
+          }
+        });
 
-        if (!result.success) {
-          const errorMessage = 'error' in result ? result.error : "Registration failed";
-          toast.error(errorMessage);
-          throw new Error(errorMessage);
+        if (result.error) {
+          throw new Error(result.error.message);
         }
 
-        // Check if email confirmation is required
-        if ('data' in result && result.data) {
-          if (result.data.session) {
-            setUser(result.data.user);
-            toast.success("Registration successful");
-            const dashboardPath = getDashboardPath(result.data.user.role);
-            navigate(dashboardPath);
-          } else {
-            toast.success("Registration successful! Please check your email to confirm your account.");
-            navigate('/login');
+        // 2. Immediately set user status to PENDING_VERIFICATION in public.users
+        const { error: statusError } = await supabase
+          .from('users')
+          .update({ status: 'PENDING_VERIFICATION' })
+          .eq('id', result.data.user?.id);
+
+        if (statusError) {
+          console.warn('Failed to update status manually, but continuing:', statusError);
+        }
+
+        // 3. CUSTOM FLOW: Generate link via backend and send via EmailJS
+        if (result.data.user && !result.data.session) {
+          try {
+            const { data: linkData } = await api.post<{ success: boolean; verificationLink: string }>('/auth/generate-verification-link', {
+              email: userData.email,
+              role: 'CUSTOMER'
+            });
+
+            if (linkData?.success && linkData.verificationLink) {
+              await sendVerificationEmail({
+                to_email: userData.email,
+                user_name: `${userData.firstName} ${userData.lastName}`,
+                verification_link: linkData.verificationLink,
+                role: 'CUSTOMER'
+              });
+              toast.success("Verification email sent. Please check your inbox.");
+            } else {
+              toast.error("Account created but failed to send verification email. Please contact support.");
+            }
+          } catch (linkErr) {
+            console.error('Failed to generate/send verification link:', linkErr);
+            toast.error("Account created but failed to send verification email. Please contact support.");
           }
+          navigate('/login');
+        } else if (result.data.session) {
+          setUser(result.data.user as any);
+          toast.success("Registration successful");
+          const dashboardPath = getDashboardPath(result.data.user?.user_metadata?.role || 'CUSTOMER');
+          navigate(dashboardPath);
         }
       }
     } catch (err: any) {
@@ -682,9 +722,9 @@ export const SupabaseAuthProvider = ({ children }: { children: React.ReactNode }
         }
       }
 
-      const { email, password, firstName, lastName, phone } = payload;
+      const { firstName, lastName, phone } = payload;
 
-      // Attempt signup (no retries for rate limits as they're persistent)
+      // 1. Unified sequence: signUp precisely once
       const { data, error } = await supabase.auth.signUp({
         email: trimmedEmail,
         password: trimmedPassword,
@@ -693,45 +733,32 @@ export const SupabaseAuthProvider = ({ children }: { children: React.ReactNode }
             first_name: firstName,
             last_name: lastName,
             phone,
-            role: 'VENDOR'
+            role: 'VENDOR',
+            status: 'PENDING_VERIFICATION'
           }
         }
       });
 
       if (error) {
-        // Check if it's a rate limit error (429)
-        const isRateLimitError = error.status === 429 ||
-          error.message?.toLowerCase().includes('too many') ||
-          error.message?.toLowerCase().includes('rate limit');
-
-        if (isRateLimitError) {
-          // Store rate limit info in localStorage
-          // Supabase typically rate limits for 5-15 minutes, we'll use 10 minutes as a safe default
-          const rateLimitDuration = 10 * 60 * 1000; // 10 minutes
-          const rateLimitData = {
-            timestamp: Date.now(),
-            duration: rateLimitDuration
-          };
-
-          try {
-            localStorage.setItem(rateLimitKey, JSON.stringify(rateLimitData));
-          } catch (e) {
-            // If localStorage fails, continue anyway
-            console.warn('Failed to store rate limit info:', e);
-          }
-
-          throw new Error('Too many registration attempts. Please wait 10 minutes before trying again.');
-        }
-
+        // Clear rate limit info on any auth error to allow retry
+        localStorage.removeItem(rateLimitKey);
         throw new Error(mapSupabaseAuthError(error));
       }
 
-      // Clear rate limit on successful signup
-      try {
-        localStorage.removeItem(rateLimitKey);
-      } catch (e) {
-        // Ignore errors
+      // 2. Immediately update user status to PENDING_VERIFICATION in public.users
+      if (data.user?.id) {
+        const { error: statusError } = await supabase
+          .from('users')
+          .update({ status: 'PENDING_VERIFICATION' })
+          .eq('id', data.user.id);
+
+        if (statusError) {
+          console.warn('Failed to update status manually, but continuing:', statusError);
+        }
       }
+
+      // Clear rate limit on successful signup
+      localStorage.removeItem(rateLimitKey);
 
       const supabaseUserId = data.user?.id;
       if (!supabaseUserId) {
@@ -816,7 +843,7 @@ export const SupabaseAuthProvider = ({ children }: { children: React.ReactNode }
           // p_user_id matches the function definition in Postgres (backend migration)
           p_user_id: authenticatedUserId,
           p_shopname: vendorInsertPayload.shopname,
-          p_status: 'PENDING'  // Must be uppercase to match CHECK constraint
+          p_status: 'PENDING'  // Initially PENDING until email is verified
         };
 
         // Add optional parameters only if they exist in the payload
@@ -926,7 +953,29 @@ export const SupabaseAuthProvider = ({ children }: { children: React.ReactNode }
         await supabase.auth.signOut();
       }
 
-      toast.success('Your application has been submitted. Please watch your inbox for approval updates.');
+      // CUSTOM FLOW: Generate link via backend and send via EmailJS for VENDOR
+      try {
+        const { data: linkData } = await api.post<{ success: boolean; verificationLink: string }>('/auth/generate-verification-link', {
+          email: trimmedEmail,
+          role: 'VENDOR'
+        });
+
+        if (linkData?.success && linkData.verificationLink) {
+          await sendVerificationEmail({
+            to_email: trimmedEmail,
+            user_name: `${firstName} ${lastName}`,
+            verification_link: linkData.verificationLink,
+            role: 'VENDOR'
+          });
+          toast.success('Verification email sent. Please check your inbox.');
+        } else {
+          toast.warning('Account created, but we couldn\'t send the verification email. Please contact support.');
+        }
+      } catch (linkErr) {
+        console.error('Failed to generate/send vendor verification link:', linkErr);
+        toast.warning('Account created, but we couldn\'t send the verification email.');
+      }
+
       navigate('/login');
     } catch (error: any) {
       const message = error?.message || 'Something went wrong while submitting your application.';

@@ -41,7 +41,15 @@ const ProtectedRoute = ({
 
   if (allowedRoles && !allowedRoles.includes(user.role)) {
     // 🚨 Logged in but role not allowed
-    return <Navigate to="/" replace />;
+    const getRedirectPath = (role: string) => {
+      switch (role) {
+        case 'ADMIN': return '/admin';
+        case 'MANAGER': return '/manager';
+        case 'VENDOR': return '/vendor';
+        default: return '/';
+      }
+    };
+    return <Navigate to={getRedirectPath(user.role)} replace />;
   }
 
   return <>{children}</>;

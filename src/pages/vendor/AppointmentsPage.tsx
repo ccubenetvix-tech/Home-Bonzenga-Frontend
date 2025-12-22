@@ -7,20 +7,22 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { motion } from 'framer-motion';
 import DashboardLayout from '@/components/DashboardLayout';
-import { 
+import {
   Calendar,
   Clock,
   User,
   Phone,
-  MapPin,
   CheckCircle,
   X,
   Search,
   Filter,
-  Eye,
-  Loader2,
   DollarSign
 } from 'lucide-react';
+
+import {
+  DialogTitle
+} from '@/components/ui/dialog';
+
 import { toast } from 'sonner';
 
 interface Appointment {
@@ -41,10 +43,13 @@ interface Appointment {
   }>;
   scheduledDate: string;
   scheduledTime: string;
-  status: 'PENDING' | 'CONFIRMED' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED' | 'AWAITING_VENDOR_RESPONSE' | 'VENDOR_CONFIRMED';
+  status: 'PENDING' | 'CONFIRMED' | 'IN_PROGRESS' | 'STARTED' | 'COMPLETED' | 'CANCELLED' | 'AWAITING_VENDOR_RESPONSE' | 'VENDOR_CONFIRMED';
   total: number;
   notes?: string;
   createdAt: string;
+  paymentStatus?: string;
+  appointmentType?: string;
+  customerPhone?: string;
 }
 
 const AppointmentsPage = () => {
@@ -53,7 +58,6 @@ const AppointmentsPage = () => {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
-  const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null);
   const [employees, setEmployees] = useState<Array<{ id: string; name: string; email?: string; phone?: string }>>([]);
   const [selectedEmployeeByBooking, setSelectedEmployeeByBooking] = useState<Record<string, string>>({});
 
@@ -63,6 +67,7 @@ const AppointmentsPage = () => {
     { value: 'AWAITING_VENDOR_RESPONSE', label: 'Awaiting Vendor Response' },
     { value: 'VENDOR_CONFIRMED', label: 'Vendor Confirmed' },
     { value: 'CONFIRMED', label: 'Confirmed' },
+    { value: 'STARTED', label: 'Started' },
     { value: 'IN_PROGRESS', label: 'In Progress' },
     { value: 'COMPLETED', label: 'Completed' },
     { value: 'CANCELLED', label: 'Cancelled' }
@@ -86,11 +91,11 @@ const AppointmentsPage = () => {
           'Content-Type': 'application/json'
         }
       });
-      
+
       if (response.ok) {
         const data = await response.json();
         console.log('Appointments data received:', data);
-        
+
         // Transform API data to match Appointment interface
         const transformedAppointments: Appointment[] = (data.appointments || data.data || []).map((appointment: any) => ({
           id: appointment.id,
@@ -123,7 +128,7 @@ const AppointmentsPage = () => {
           notes: appointment.notes,
           createdAt: appointment.createdAt || new Date().toISOString()
         }));
-        
+
         setAppointments(transformedAppointments);
       } else {
         // Fallback to mock data if API fails
@@ -255,7 +260,7 @@ const AppointmentsPage = () => {
       const token = localStorage.getItem('token');
       let endpoint = '';
       let method = 'PUT';
-      
+
       if (newStatus === 'CONFIRMED') {
         endpoint = `http://localhost:3001/api/vendor/bookings/${appointmentId}/approve`;
       } else if (newStatus === 'CANCELLED') {
@@ -263,14 +268,14 @@ const AppointmentsPage = () => {
       } else {
         endpoint = `http://localhost:3001/api/vendor/bookings/${appointmentId}/status`;
       }
-      
+
       const response = await fetch(endpoint, {
         method,
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({ 
+        body: JSON.stringify({
           ...(newStatus === 'CANCELLED' && { reason: 'Vendor cancelled' }),
           ...(newStatus === 'CONFIRMED' && { employeeId: null })
         })
@@ -298,8 +303,10 @@ const AppointmentsPage = () => {
         return 'bg-indigo-100 text-indigo-800';
       case 'CONFIRMED':
         return 'bg-blue-100 text-blue-800';
+      case 'STARTED':
       case 'IN_PROGRESS':
         return 'bg-purple-100 text-purple-800';
+
       case 'COMPLETED':
         return 'bg-green-100 text-green-800';
       case 'CANCELLED':
@@ -310,13 +317,13 @@ const AppointmentsPage = () => {
   };
 
   const filteredAppointments = appointments.filter(appointment => {
-    const matchesSearch = 
+    const matchesSearch =
       appointment.customer.firstName.toLowerCase().includes(searchTerm.toLowerCase()) ||
       appointment.customer.lastName.toLowerCase().includes(searchTerm.toLowerCase()) ||
       appointment.customer.email.toLowerCase().includes(searchTerm.toLowerCase());
-    
+
     const matchesStatus = statusFilter === 'all' || appointment.status === statusFilter;
-    
+
     return matchesSearch && matchesStatus;
   });
 
@@ -411,8 +418,8 @@ const AppointmentsPage = () => {
                 <Calendar className="w-16 h-16 text-[#6d4c41]/50 mx-auto mb-4" />
                 <h3 className="text-xl font-semibold text-[#4e342e] mb-2">No Appointments Found</h3>
                 <p className="text-[#6d4c41]">
-                  {searchTerm || statusFilter !== 'all' 
-                    ? 'Try adjusting your search criteria.' 
+                  {searchTerm || statusFilter !== 'all'
+                    ? 'Try adjusting your search criteria.'
                     : 'You don\'t have any appointments yet.'}
                 </p>
               </CardContent>
@@ -497,7 +504,7 @@ const AppointmentsPage = () => {
                           <Badge className={getStatusColor(appointment.status)}>
                             {appointment.status.replace('_', ' ')}
                           </Badge>
-                          
+
                           <div className="flex space-x-2">
                             {appointment.status === 'PENDING' && (
                               <>
@@ -520,7 +527,7 @@ const AppointmentsPage = () => {
                                 </Button>
                               </>
                             )}
-                            
+
                             {appointment.status === 'AWAITING_VENDOR_RESPONSE' && (
                               <div className="flex items-center gap-2">
                                 <select
@@ -546,17 +553,9 @@ const AppointmentsPage = () => {
                               </div>
                             )}
 
-                            {appointment.status === 'CONFIRMED' && (
-                              <Button
-                                size="sm"
-                                onClick={() => updateAppointmentStatus(appointment.id, 'IN_PROGRESS')}
-                                className="bg-blue-600 hover:bg-blue-700 text-white"
-                              >
-                                Start
-                              </Button>
-                            )}
-                            
-                            {appointment.status === 'IN_PROGRESS' && (
+
+
+                            {(appointment.status === 'IN_PROGRESS' || appointment.status === 'STARTED') && (
                               <Button
                                 size="sm"
                                 onClick={() => updateAppointmentStatus(appointment.id, 'COMPLETED')}
@@ -566,15 +565,9 @@ const AppointmentsPage = () => {
                                 Complete
                               </Button>
                             )}
-                            
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => setSelectedAppointment(appointment)}
-                              className="border-[#4e342e] text-[#4e342e] hover:bg-[#4e342e] hover:text-white"
-                            >
-                              <Eye className="w-3 h-3" />
-                            </Button>
+
+
+
                           </div>
                         </div>
                       </div>
@@ -591,3 +584,4 @@ const AppointmentsPage = () => {
 };
 
 export default AppointmentsPage;
+

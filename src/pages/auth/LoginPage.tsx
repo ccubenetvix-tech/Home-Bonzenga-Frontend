@@ -67,17 +67,17 @@ const LoginPage = () => {
     }
   };
 
-const handleGoogleLogin = async () => {
-  setIsLoading(true);
-  try {
-    await handleSignup('google');
-    //await loginWithGoogle();
-  } catch (error: unknown) {
-    console.error('Google login error:', error);
-  } finally {
-    setIsLoading(false);
-  }
-};
+  const handleGoogleLogin = async () => {
+    setIsLoading(true);
+    try {
+      await handleSignup('google');
+      //await loginWithGoogle();
+    } catch (error: unknown) {
+      console.error('Google login error:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
 
 
@@ -87,18 +87,40 @@ const handleGoogleLogin = async () => {
       <nav className="bg-white shadow-sm border-b border-[#f8d7da]/20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
-            <Link to="/" className="flex items-center space-x-3">
+            <div
+              onClick={() => {
+                const getRedirect = (role?: string) => {
+                  if (role === 'ADMIN') return '/admin';
+                  if (role === 'MANAGER') return '/manager';
+                  if (role === 'VENDOR') return '/vendor';
+                  return '/';
+                };
+                navigate(getRedirect(user?.role));
+              }}
+              className="flex items-center space-x-3 cursor-pointer"
+            >
               <img
                 src={logo}
                 alt="Home Bonzenga Logo"
                 className="h-12 w-12 rounded-full object-cover border-2 border-[#f8d7da] shadow-md"
               />
               <span className="text-2xl font-serif font-bold text-[#4e342e]">HOME BONZENGA</span>
-            </Link>
+            </div>
             <div className="flex items-center space-x-4">
-              <Link to="/" className="text-[#6d4c41] hover:text-[#4e342e] font-medium transition-colors">
+              <button
+                onClick={() => {
+                  const getRedirect = (role?: string) => {
+                    if (role === 'ADMIN') return '/admin';
+                    if (role === 'MANAGER') return '/manager';
+                    if (role === 'VENDOR') return '/vendor';
+                    return '/';
+                  };
+                  navigate(getRedirect(user?.role));
+                }}
+                className="text-[#6d4c41] hover:text-[#4e342e] font-medium transition-colors"
+              >
                 Home
-              </Link>
+              </button>
               <Link to="/register" className="bg-[#4e342e] hover:bg-[#3b2c26] text-white px-4 py-2 rounded-lg font-medium transition-colors">
                 Sign Up
               </Link>
@@ -121,62 +143,62 @@ const handleGoogleLogin = async () => {
               <CardTitle className="text-2xl font-serif font-bold text-[#4e342e] text-center">Sign In to Your Account</CardTitle>
             </CardHeader>
             <CardContent className="p-8">
-              
-              
+
+
               <Form {...form}>
                 <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-                <FormField
-                  control={form.control}
-                  name="email"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>{t('auth.login.email')}</FormLabel>
-                      <FormControl>
-                        <Input
-                          type="email"
-                          placeholder={t('auth.login.enterEmail')}
-                          {...field}
-                          className="transition-all duration-300 focus:ring-2 focus:ring-primary/20"
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="password"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>{t('auth.login.password')}</FormLabel>
-                      <FormControl>
-                        <div className="relative">
+                  <FormField
+                    control={form.control}
+                    name="email"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>{t('auth.login.email')}</FormLabel>
+                        <FormControl>
                           <Input
-                            type={showPassword ? 'text' : 'password'}
-                            placeholder={t('auth.login.enterPassword')}
+                            type="email"
+                            placeholder={t('auth.login.enterEmail')}
                             {...field}
-                            className="pr-10 transition-all duration-300 focus:ring-2 focus:ring-primary/20"
+                            className="transition-all duration-300 focus:ring-2 focus:ring-primary/20"
                           />
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-                            onClick={() => setShowPassword(!showPassword)}
-                          >
-                            {showPassword ? (
-                              <EyeOff className="h-4 w-4 text-muted-foreground" />
-                            ) : (
-                              <Eye className="h-4 w-4 text-muted-foreground" />
-                            )}
-                          </Button>
-                        </div>
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="password"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>{t('auth.login.password')}</FormLabel>
+                        <FormControl>
+                          <div className="relative">
+                            <Input
+                              type={showPassword ? 'text' : 'password'}
+                              placeholder={t('auth.login.enterPassword')}
+                              {...field}
+                              className="pr-10 transition-all duration-300 focus:ring-2 focus:ring-primary/20"
+                            />
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                              onClick={() => setShowPassword(!showPassword)}
+                            >
+                              {showPassword ? (
+                                <EyeOff className="h-4 w-4 text-muted-foreground" />
+                              ) : (
+                                <Eye className="h-4 w-4 text-muted-foreground" />
+                              )}
+                            </Button>
+                          </div>
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
 
                   <Button
                     type="submit"

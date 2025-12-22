@@ -74,6 +74,19 @@ const Navigation = () => {
     return null;
   }
 
+  const getLogoRedirectPath = (role?: string) => {
+    switch (role) {
+      case 'ADMIN':
+        return '/admin';
+      case 'MANAGER':
+        return '/manager';
+      case 'VENDOR':
+        return '/vendor';
+      default:
+        return '/'; // CUSTOMER or Guest
+    }
+  };
+
   return (
     <header className="fixed top-0 z-50 w-full">
       {/* Main Navigation */}
@@ -83,7 +96,10 @@ const Navigation = () => {
         }`}>
         {/* Logo Section */}
         <div className="flex items-center flex-shrink-0">
-          <Link to="/" className="flex items-center space-x-3">
+          <div
+            onClick={() => navigate(getLogoRedirectPath(user?.role))}
+            className="flex items-center space-x-3 cursor-pointer"
+          >
             <img
               src={logo}
               alt="Home Bonzenga Logo"
@@ -93,7 +109,7 @@ const Navigation = () => {
               <h1 className="text-xl font-serif font-bold text-[#4e342e]">HOME BONZENGA</h1>
               <p className="text-xs text-[#6d4c41] leading-none font-sans">Premium Beauty Services</p>
             </div>
-          </Link>
+          </div>
         </div>
 
         {/* Desktop Navigation - Centered */}

@@ -41,6 +41,19 @@ const CustomerNavigation: React.FC<CustomerNavigationProps> = ({ isScrolled = fa
     return `${firstName?.charAt(0) || ''}${lastName?.charAt(0) || ''}`.toUpperCase();
   };
 
+  const getLogoRedirectPath = (role?: string) => {
+    switch (role) {
+      case 'ADMIN':
+        return '/admin';
+      case 'MANAGER':
+        return '/manager';
+      case 'VENDOR':
+        return '/vendor';
+      default:
+        return '/'; // CUSTOMER
+    }
+  };
+
   return (
     <nav className={`w-full px-4 lg:px-8 h-20 flex items-center justify-between transition-all duration-300 ${isScrolled
       ? 'bg-white/95 backdrop-blur-md shadow-lg border-b border-[#f8d7da]/30'
@@ -48,7 +61,10 @@ const CustomerNavigation: React.FC<CustomerNavigationProps> = ({ isScrolled = fa
       }`}>
       {/* Logo */}
       <div className="flex items-center">
-        <Link to="/" className="flex items-center space-x-3">
+        <div
+          onClick={() => navigate(getLogoRedirectPath(user?.role))}
+          className="flex items-center space-x-3 cursor-pointer"
+        >
           <div className="h-12 w-12 rounded-full bg-gradient-to-br from-[#4e342e] to-[#6d4c41] flex items-center justify-center">
             <span className="text-white font-bold text-lg">HB</span>
           </div>
@@ -56,7 +72,7 @@ const CustomerNavigation: React.FC<CustomerNavigationProps> = ({ isScrolled = fa
             <h1 className="text-xl font-serif font-bold text-[#4e342e]">HOME BONZENGA</h1>
             <p className="text-xs text-[#6d4c41] leading-none font-sans">Premium Beauty Services</p>
           </div>
-        </Link>
+        </div>
       </div>
 
       {/* Desktop Navigation */}

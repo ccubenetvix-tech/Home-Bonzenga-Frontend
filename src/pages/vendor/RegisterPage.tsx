@@ -174,12 +174,12 @@ const VendorRegisterPage = () => {
     try {
       const rateLimitKey = `supabase_rate_limit_${email.toLowerCase().trim()}`;
       const rateLimitInfo = localStorage.getItem(rateLimitKey);
-      
+
       if (rateLimitInfo) {
         const { timestamp, duration } = JSON.parse(rateLimitInfo);
         const now = Date.now();
         const timeRemaining = (timestamp + duration) - now;
-        
+
         if (timeRemaining > 0) {
           const minutesRemaining = Math.ceil(timeRemaining / 60000);
           const secondsRemaining = Math.ceil((timeRemaining % 60000) / 1000);
@@ -270,322 +270,339 @@ const VendorRegisterPage = () => {
             {...fadeInUp}
           >
             <div className="flex items-center space-x-4 mb-8">
-              <Link to="/register">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="border-[#4e342e] text-[#4e342e] hover:bg-[#4e342e] hover:text-white"
-                >
-                  <ArrowLeft className="w-4 h-4 mr-2" />
-                  Back
-                </Button>
-              </Link>
-              <h1 className="text-3xl font-serif font-bold text-[#4e342e]">Vendor Registration</h1>
+              {!hasSubmitted && (
+                <Link to="/register">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="border-[#4e342e] text-[#4e342e] hover:bg-[#4e342e] hover:text-white"
+                  >
+                    <ArrowLeft className="w-4 h-4 mr-2" />
+                    Back
+                  </Button>
+                </Link>
+              )}
+              <h1 className="text-3xl font-serif font-bold text-[#4e342e]">
+                {hasSubmitted ? "Application Received" : "Vendor Registration"}
+              </h1>
             </div>
 
-            <form 
-              onSubmit={(e) => {
-                e.preventDefault();
-                // Prevent duplicate submissions
-                if (isSubmitting || hasSubmitted) {
-                  return false;
-                }
-                
-                const submitResult = handleSubmit(onSubmit)(e);
-                
-                // Only set hasSubmitted if validation passed (onSubmit was called)
-                if (submitResult !== undefined && typeof submitResult.then === 'function') {
-                  setHasSubmitted(true);
-                  submitResult.finally(() => {
-                    setHasSubmitted(false);
+            {hasSubmitted ? (
+              <Card className="border-0 bg-white shadow-2xl rounded-3xl overflow-hidden p-12 text-center space-y-8 animate-in fade-in zoom-in duration-500">
+                <div className="flex justify-center">
+                  <div className="w-24 h-24 bg-green-100 rounded-full flex items-center justify-center">
+                    <CheckCircle className="w-12 h-12 text-green-600" />
+                  </div>
+                </div>
+                <div className="space-y-4">
+                  <h2 className="text-3xl font-serif font-bold text-[#4e342e]">Successfully Submitted!</h2>
+                  <p className="text-xl text-[#6d4c41]">
+                    We've sent a verification link to your email address.
+                    Please check your inbox and click the link to activate your account.
+                  </p>
+                  <p className="text-[#6d4c41] max-w-md mx-auto">
+                    Note: After verifying your email, your account will be reviewed by our administration team.
+                    You will receive another update once your vendor profile is approved.
+                  </p>
+                </div>
+                <div className="pt-4">
+                  <Button
+                    onClick={() => window.location.href = '/login'}
+                    className="bg-[#4e342e] text-white px-8 py-3 rounded-xl text-lg"
+                  >
+                    Go to Login
+                  </Button>
+                </div>
+              </Card>
+            ) : (
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  if (isSubmitting || hasSubmitted) return;
+
+                  handleSubmit(onSubmit)(e).then(() => {
+                    setHasSubmitted(true);
                   });
-                }
-              }} 
-              className="space-y-8"
-            >
-              {/* Personal Information */}
-              <Card className="border-0 bg-white shadow-lg">
-                <CardHeader>
-                  <CardTitle className="text-[#4e342e] flex items-center">
-                    <User className="w-5 h-5 mr-2" />
-                    Personal Information
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <Label htmlFor="firstName" className="text-[#4e342e] font-medium">First Name</Label>
-                      <Input
-                        id="firstName"
-                        {...register('firstName')}
-                        className="mt-2 border-[#f8d7da] focus:border-[#4e342e] focus:ring-[#4e342e]/20"
-                      />
-                      {errors.firstName && <p className="text-red-500 text-sm mt-1">{errors.firstName.message}</p>}
-                    </div>
-                    <div>
-                      <Label htmlFor="lastName" className="text-[#4e342e] font-medium">Last Name</Label>
-                      <Input
-                        id="lastName"
-                        {...register('lastName')}
-                        className="mt-2 border-[#f8d7da] focus:border-[#4e342e] focus:ring-[#4e342e]/20"
-                      />
-                      {errors.lastName && <p className="text-red-500 text-sm mt-1">{errors.lastName.message}</p>}
-                    </div>
-                  </div>
-
-                  <div>
-                    <Label htmlFor="email" className="text-[#4e342e] font-medium">Email Address</Label>
-                    <Input
-                      id="email"
-                      type="email"
-                      {...register('email')}
-                      className="mt-2 border-[#f8d7da] focus:border-[#4e342e] focus:ring-[#4e342e]/20"
-                    />
-                    {errors.email && <p className="text-red-500 text-sm mt-1">{errors.email.message}</p>}
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <Label htmlFor="password" className="text-[#4e342e] font-medium">Password</Label>
-                      <Input
-                        id="password"
-                        type="password"
-                        {...register('password')}
-                        className="mt-2 border-[#f8d7da] focus:border-[#4e342e] focus:ring-[#4e342e]/20"
-                      />
-                      {errors.password && <p className="text-red-500 text-sm mt-1">{errors.password.message}</p>}
-                    </div>
-                    <div>
-                      <Label htmlFor="confirmPassword" className="text-[#4e342e] font-medium">Confirm Password</Label>
-                      <Input
-                        id="confirmPassword"
-                        type="password"
-                        {...register('confirmPassword')}
-                        className="mt-2 border-[#f8d7da] focus:border-[#4e342e] focus:ring-[#4e342e]/20"
-                      />
-                      {errors.confirmPassword && <p className="text-red-500 text-sm mt-1">{errors.confirmPassword.message}</p>}
-                    </div>
-                  </div>
-
-                  <div>
-                    <Label htmlFor="phone" className="text-[#4e342e] font-medium">Phone Number</Label>
-                    <Input
-                      id="phone"
-                      type="tel"
-                      {...register('phone')}
-                      className="mt-2 border-[#f8d7da] focus:border-[#4e342e] focus:ring-[#4e342e]/20"
-                    />
-                    {errors.phone && <p className="text-red-500 text-sm mt-1">{errors.phone.message}</p>}
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Business Information */}
-              <Card className="border-0 bg-white shadow-lg">
-                <CardHeader>
-                  <CardTitle className="text-[#4e342e] flex items-center">
-                    <Building className="w-5 h-5 mr-2" />
-                    Business Information
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div>
-                    <Label htmlFor="shopname" className="text-[#4e342e] font-medium">Shop/Salon Name</Label>
-                    <Input
-                      id="shopname"
-                      {...register('shopname')}
-                      className="mt-2 border-[#f8d7da] focus:border-[#4e342e] focus:ring-[#4e342e]/20"
-                    />
-                    {errors.shopname && <p className="text-red-500 text-sm mt-1">{errors.shopname.message}</p>}
-                  </div>
-
-                  <div>
-                    <Label htmlFor="description" className="text-[#4e342e] font-medium">Business Description</Label>
-                    <Textarea
-                      id="description"
-                      {...register('description')}
-                      rows={4}
-                      className="mt-2 border-[#f8d7da] focus:border-[#4e342e] focus:ring-[#4e342e]/20"
-                      placeholder="Describe your salon, services, and what makes you unique..."
-                    />
-                    {errors.description && <p className="text-red-500 text-sm mt-1">{errors.description.message}</p>}
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div>
-                      <Label htmlFor="businessType" className="text-[#4e342e] font-medium">Business Type</Label>
-                      <select
-                        id="businessType"
-                        {...register('businessType')}
-                        className="mt-2 w-full px-3 py-2 border border-[#f8d7da] rounded-md focus:border-[#4e342e] focus:ring-[#4e342e]/20"
-                      >
-                        {businessTypes.map(type => (
-                          <option key={type.value} value={type.value}>{type.label}</option>
-                        ))}
-                      </select>
-                    </div>
-                    <div>
-                      <Label htmlFor="yearsInBusiness" className="text-[#4e342e] font-medium">Years in Business</Label>
-                      <select
-                        id="yearsInBusiness"
-                        {...register('yearsInBusiness')}
-                        className="mt-2 w-full px-3 py-2 border border-[#f8d7da] rounded-md focus:border-[#4e342e] focus:ring-[#4e342e]/20"
-                      >
-                        {yearsOptions.map(option => (
-                          <option key={option.value} value={option.value}>{option.label}</option>
-                        ))}
-                      </select>
-                    </div>
-                    <div>
-                      <Label htmlFor="numberOfEmployees" className="text-[#4e342e] font-medium">Number of Employees</Label>
-                      <Input
-                        id="numberOfEmployees"
-                        type="number"
-                        min="1"
-                        {...register('numberOfEmployees')}
-                        className="mt-2 border-[#f8d7da] focus:border-[#4e342e] focus:ring-[#4e342e]/20"
-                      />
-                      {errors.numberOfEmployees && <p className="text-red-500 text-sm mt-1">{errors.numberOfEmployees.message}</p>}
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Address Information */}
-              <Card className="border-0 bg-white shadow-lg">
-                <CardHeader>
-                  <CardTitle className="text-[#4e342e] flex items-center">
-                    <MapPin className="w-5 h-5 mr-2" />
-                    Address Information
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div>
-                    <Label htmlFor="address" className="text-[#4e342e] font-medium">Street Address</Label>
-                    <Input
-                      id="address"
-                      {...register('address')}
-                      className="mt-2 border-[#f8d7da] focus:border-[#4e342e] focus:ring-[#4e342e]/20"
-                    />
-                    {errors.address && <p className="text-red-500 text-sm mt-1">{errors.address.message}</p>}
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div>
-                      <Label htmlFor="city" className="text-[#4e342e] font-medium">City</Label>
-                      <Input
-                        id="city"
-                        {...register('city')}
-                        className="mt-2 border-[#f8d7da] focus:border-[#4e342e] focus:ring-[#4e342e]/20"
-                      />
-                      {errors.city && <p className="text-red-500 text-sm mt-1">{errors.city.message}</p>}
-                    </div>
-                    <div>
-                      <Label htmlFor="state" className="text-[#4e342e] font-medium">State/Province</Label>
-                      <Input
-                        id="state"
-                        {...register('state')}
-                        className="mt-2 border-[#f8d7da] focus:border-[#4e342e] focus:ring-[#4e342e]/20"
-                      />
-                      {errors.state && <p className="text-red-500 text-sm mt-1">{errors.state.message}</p>}
-                    </div>
-                    <div>
-                      <Label htmlFor="zipCode" className="text-[#4e342e] font-medium">Zip/Postal Code</Label>
-                      <Input
-                        id="zipCode"
-                        {...register('zipCode')}
-                        className="mt-2 border-[#f8d7da] focus:border-[#4e342e] focus:ring-[#4e342e]/20"
-                      />
-                      {errors.zipCode && <p className="text-red-500 text-sm mt-1">{errors.zipCode.message}</p>}
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Services Offered */}
-              <Card className="border-0 bg-white shadow-lg">
-                <CardHeader>
-                  <CardTitle className="text-[#4e342e]">Services Offered</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-                    {availableServices.map(service => (
-                      <label
-                        key={service}
-                        className="flex items-center space-x-2 p-3 border border-[#f8d7da] rounded-lg hover:bg-[#f8d7da]/20 cursor-pointer transition-colors"
-                      >
-                        <input
-                          type="checkbox"
-                          checked={watch('servicesOffered').includes(service)}
-                          onChange={() => handleServiceToggle(service)}
-                          className="w-4 h-4 text-[#4e342e] border-[#f8d7da] rounded focus:ring-[#4e342e]/20"
+                }}
+                className="space-y-8"
+              >
+                {/* Personal Information */}
+                <Card className="border-0 bg-white shadow-lg">
+                  <CardHeader>
+                    <CardTitle className="text-[#4e342e] flex items-center">
+                      <User className="w-5 h-5 mr-2" />
+                      Personal Information
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="firstName" className="text-[#4e342e] font-medium">First Name</Label>
+                        <Input
+                          id="firstName"
+                          {...register('firstName')}
+                          className="mt-2 border-[#f8d7da] focus:border-[#4e342e] focus:ring-[#4e342e]/20"
                         />
-                        <span className="text-sm text-[#4e342e]">{service}</span>
-                      </label>
-                    ))}
-                  </div>
-                  {errors.servicesOffered && <p className="text-red-500 text-sm mt-2">{errors.servicesOffered.message}</p>}
-                </CardContent>
-              </Card>
-
-              {/* Operating Hours */}
-              <Card className="border-0 bg-white shadow-lg">
-                <CardHeader>
-                  <CardTitle className="text-[#4e342e]">Operating Hours</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    {['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'].map(day => (
-                      <div key={day} className="grid grid-cols-3 gap-4 items-center">
-                        <div className="capitalize font-medium text-[#4e342e]">{day}</div>
-                        <div>
-                          <Input
-                            type="time"
-                            {...register(`${day}Open` as keyof VendorRegistrationForm)}
-                            className="border-[#f8d7da] focus:border-[#4e342e] focus:ring-[#4e342e]/20"
-                          />
-                        </div>
-                        <div>
-                          <Input
-                            type="time"
-                            {...register(`${day}Close` as keyof VendorRegistrationForm)}
-                            className="border-[#f8d7da] focus:border-[#4e342e] focus:ring-[#4e342e]/20"
-                          />
-                        </div>
+                        {errors.firstName && <p className="text-red-500 text-sm mt-1">{errors.firstName.message}</p>}
                       </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
+                      <div>
+                        <Label htmlFor="lastName" className="text-[#4e342e] font-medium">Last Name</Label>
+                        <Input
+                          id="lastName"
+                          {...register('lastName')}
+                          className="mt-2 border-[#f8d7da] focus:border-[#4e342e] focus:ring-[#4e342e]/20"
+                        />
+                        {errors.lastName && <p className="text-red-500 text-sm mt-1">{errors.lastName.message}</p>}
+                      </div>
+                    </div>
 
-              {/* Submit Button */}
-              <div className="text-center">
-                <Button
-                  type="submit"
-                  disabled={isSubmitting}
-                  className="bg-[#4e342e] hover:bg-[#3b2c26] text-white px-12 py-4 text-lg font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
-                  onClick={(e) => {
-                    // Prevent form submission if already submitting
-                    if (isSubmitting) {
-                      e.preventDefault();
-                      return false;
-                    }
-                  }}
-                >
-                  {isSubmitting ? (
-                    <>
-                      <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                      Registering...
-                    </>
-                  ) : (
-                    <>
-                      <CheckCircle className="w-5 h-5 mr-2" />
-                      Register as Vendor
-                    </>
-                  )}
-                </Button>
-              </div>
-            </form>
+                    <div>
+                      <Label htmlFor="email" className="text-[#4e342e] font-medium">Email Address</Label>
+                      <Input
+                        id="email"
+                        type="email"
+                        {...register('email')}
+                        className="mt-2 border-[#f8d7da] focus:border-[#4e342e] focus:ring-[#4e342e]/20"
+                      />
+                      {errors.email && <p className="text-red-500 text-sm mt-1">{errors.email.message}</p>}
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="password" className="text-[#4e342e] font-medium">Password</Label>
+                        <Input
+                          id="password"
+                          type="password"
+                          {...register('password')}
+                          className="mt-2 border-[#f8d7da] focus:border-[#4e342e] focus:ring-[#4e342e]/20"
+                        />
+                        {errors.password && <p className="text-red-500 text-sm mt-1">{errors.password.message}</p>}
+                      </div>
+                      <div>
+                        <Label htmlFor="confirmPassword" className="text-[#4e342e] font-medium">Confirm Password</Label>
+                        <Input
+                          id="confirmPassword"
+                          type="password"
+                          {...register('confirmPassword')}
+                          className="mt-2 border-[#f8d7da] focus:border-[#4e342e] focus:ring-[#4e342e]/20"
+                        />
+                        {errors.confirmPassword && <p className="text-red-500 text-sm mt-1">{errors.confirmPassword.message}</p>}
+                      </div>
+                    </div>
+
+                    <div>
+                      <Label htmlFor="phone" className="text-[#4e342e] font-medium">Phone Number</Label>
+                      <Input
+                        id="phone"
+                        type="tel"
+                        {...register('phone')}
+                        className="mt-2 border-[#f8d7da] focus:border-[#4e342e] focus:ring-[#4e342e]/20"
+                      />
+                      {errors.phone && <p className="text-red-500 text-sm mt-1">{errors.phone.message}</p>}
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Business Information */}
+                <Card className="border-0 bg-white shadow-lg">
+                  <CardHeader>
+                    <CardTitle className="text-[#4e342e] flex items-center">
+                      <Building className="w-5 h-5 mr-2" />
+                      Business Information
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div>
+                      <Label htmlFor="shopname" className="text-[#4e342e] font-medium">Shop/Salon Name</Label>
+                      <Input
+                        id="shopname"
+                        {...register('shopname')}
+                        className="mt-2 border-[#f8d7da] focus:border-[#4e342e] focus:ring-[#4e342e]/20"
+                      />
+                      {errors.shopname && <p className="text-red-500 text-sm mt-1">{errors.shopname.message}</p>}
+                    </div>
+
+                    <div>
+                      <Label htmlFor="description" className="text-[#4e342e] font-medium">Business Description</Label>
+                      <Textarea
+                        id="description"
+                        {...register('description')}
+                        rows={4}
+                        className="mt-2 border-[#f8d7da] focus:border-[#4e342e] focus:ring-[#4e342e]/20"
+                        placeholder="Describe your salon, services, and what makes you unique..."
+                      />
+                      {errors.description && <p className="text-red-500 text-sm mt-1">{errors.description.message}</p>}
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div>
+                        <Label htmlFor="businessType" className="text-[#4e342e] font-medium">Business Type</Label>
+                        <select
+                          id="businessType"
+                          {...register('businessType')}
+                          className="mt-2 w-full px-3 py-2 border border-[#f8d7da] rounded-md focus:border-[#4e342e] focus:ring-[#4e342e]/20"
+                        >
+                          {businessTypes.map(type => (
+                            <option key={type.value} value={type.value}>{type.label}</option>
+                          ))}
+                        </select>
+                      </div>
+                      <div>
+                        <Label htmlFor="yearsInBusiness" className="text-[#4e342e] font-medium">Years in Business</Label>
+                        <select
+                          id="yearsInBusiness"
+                          {...register('yearsInBusiness')}
+                          className="mt-2 w-full px-3 py-2 border border-[#f8d7da] rounded-md focus:border-[#4e342e] focus:ring-[#4e342e]/20"
+                        >
+                          {yearsOptions.map(option => (
+                            <option key={option.value} value={option.value}>{option.label}</option>
+                          ))}
+                        </select>
+                      </div>
+                      <div>
+                        <Label htmlFor="numberOfEmployees" className="text-[#4e342e] font-medium">Number of Employees</Label>
+                        <Input
+                          id="numberOfEmployees"
+                          type="number"
+                          min="1"
+                          {...register('numberOfEmployees')}
+                          className="mt-2 border-[#f8d7da] focus:border-[#4e342e] focus:ring-[#4e342e]/20"
+                        />
+                        {errors.numberOfEmployees && <p className="text-red-500 text-sm mt-1">{errors.numberOfEmployees.message}</p>}
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Address Information */}
+                <Card className="border-0 bg-white shadow-lg">
+                  <CardHeader>
+                    <CardTitle className="text-[#4e342e] flex items-center">
+                      <MapPin className="w-5 h-5 mr-2" />
+                      Address Information
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div>
+                      <Label htmlFor="address" className="text-[#4e342e] font-medium">Street Address</Label>
+                      <Input
+                        id="address"
+                        {...register('address')}
+                        className="mt-2 border-[#f8d7da] focus:border-[#4e342e] focus:ring-[#4e342e]/20"
+                      />
+                      {errors.address && <p className="text-red-500 text-sm mt-1">{errors.address.message}</p>}
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div>
+                        <Label htmlFor="city" className="text-[#4e342e] font-medium">City</Label>
+                        <Input
+                          id="city"
+                          {...register('city')}
+                          className="mt-2 border-[#f8d7da] focus:border-[#4e342e] focus:ring-[#4e342e]/20"
+                        />
+                        {errors.city && <p className="text-red-500 text-sm mt-1">{errors.city.message}</p>}
+                      </div>
+                      <div>
+                        <Label htmlFor="state" className="text-[#4e342e] font-medium">State/Province</Label>
+                        <Input
+                          id="state"
+                          {...register('state')}
+                          className="mt-2 border-[#f8d7da] focus:border-[#4e342e] focus:ring-[#4e342e]/20"
+                        />
+                        {errors.state && <p className="text-red-500 text-sm mt-1">{errors.state.message}</p>}
+                      </div>
+                      <div>
+                        <Label htmlFor="zipCode" className="text-[#4e342e] font-medium">Zip/Postal Code</Label>
+                        <Input
+                          id="zipCode"
+                          {...register('zipCode')}
+                          className="mt-2 border-[#f8d7da] focus:border-[#4e342e] focus:ring-[#4e342e]/20"
+                        />
+                        {errors.zipCode && <p className="text-red-500 text-sm mt-1">{errors.zipCode.message}</p>}
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Services Offered */}
+                <Card className="border-0 bg-white shadow-lg">
+                  <CardHeader>
+                    <CardTitle className="text-[#4e342e]">Services Offered</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                      {availableServices.map(service => (
+                        <label
+                          key={service}
+                          className="flex items-center space-x-2 p-3 border border-[#f8d7da] rounded-lg hover:bg-[#f8d7da]/20 cursor-pointer transition-colors"
+                        >
+                          <input
+                            type="checkbox"
+                            checked={watch('servicesOffered').includes(service)}
+                            onChange={() => handleServiceToggle(service)}
+                            className="w-4 h-4 text-[#4e342e] border-[#f8d7da] rounded focus:ring-[#4e342e]/20"
+                          />
+                          <span className="text-sm text-[#4e342e]">{service}</span>
+                        </label>
+                      ))}
+                    </div>
+                    {errors.servicesOffered && <p className="text-red-500 text-sm mt-2">{errors.servicesOffered.message}</p>}
+                  </CardContent>
+                </Card>
+
+                {/* Operating Hours */}
+                <Card className="border-0 bg-white shadow-lg">
+                  <CardHeader>
+                    <CardTitle className="text-[#4e342e]">Operating Hours</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      {['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'].map(day => (
+                        <div key={day} className="grid grid-cols-3 gap-4 items-center">
+                          <div className="capitalize font-medium text-[#4e342e]">{day}</div>
+                          <div>
+                            <Input
+                              type="time"
+                              {...register(`${day}Open` as keyof VendorRegistrationForm)}
+                              className="border-[#f8d7da] focus:border-[#4e342e] focus:ring-[#4e342e]/20"
+                            />
+                          </div>
+                          <div>
+                            <Input
+                              type="time"
+                              {...register(`${day}Close` as keyof VendorRegistrationForm)}
+                              className="border-[#f8d7da] focus:border-[#4e342e] focus:ring-[#4e342e]/20"
+                            />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Submit Button */}
+                <div className="text-center">
+                  <Button
+                    type="submit"
+                    disabled={isSubmitting}
+                    className="bg-[#4e342e] hover:bg-[#3b2c26] text-white px-12 py-4 text-lg font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {isSubmitting ? (
+                      <>
+                        <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                        Registering...
+                      </>
+                    ) : (
+                      <>
+                        <CheckCircle className="w-5 h-5 mr-2" />
+                        Register as Vendor
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </form>
+            )}
           </motion.div>
         </div>
       </div>
