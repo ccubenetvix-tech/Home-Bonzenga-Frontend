@@ -293,7 +293,7 @@ const ManagerDashboard = () => {
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* Pending Vendor Applications */}
-          <Card className="border-0 bg-white shadow-lg">
+          <Card className="border-0 bg-white shadow-lg h-full">
             <CardHeader>
               <CardTitle className="text-xl font-serif font-bold text-[#4e342e] flex items-center">
                 <AlertCircle className="w-5 h-5 mr-2 text-orange-500" />
@@ -410,70 +410,15 @@ const ManagerDashboard = () => {
             </CardContent>
           </Card>
 
-
-          {/* Recent Appointments */}
-          <Card className="border-0 bg-white shadow-lg">
-            <CardHeader>
-              <CardTitle className="text-xl font-serif font-bold text-[#4e342e] flex items-center">
-                <Calendar className="w-5 h-5 mr-2 text-blue-500" />
-                Recent Appointments
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {recentAppointments.length > 0 ? (
-                  recentAppointments.map((appointment) => (
-                    <div key={appointment.id} className="flex items-center justify-between p-4 bg-[#fdf6f0] rounded-lg">
-                      <div className="flex items-center space-x-4">
-                        <div className="w-10 h-10 bg-[#4e342e] rounded-full flex items-center justify-center">
-                          <User className="w-5 h-5 text-white" />
-                        </div>
-                        <div>
-                          <h4 className="font-semibold text-[#4e342e]">
-                            {appointment.customerName}
-                          </h4>
-                          <p className="text-sm text-[#6d4c41]">{appointment.vendorName}</p>
-                          <p className="text-sm text-[#6d4c41]">{appointment.serviceName}</p>
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <div className="text-sm text-[#6d4c41] mb-1">
-                          {new Date(appointment.scheduledDate).toLocaleDateString()}
-                        </div>
-                        <div className="text-sm text-[#6d4c41] mb-2">
-                          {appointment.scheduledTime}
-                        </div>
-                        <Badge className={`px-2 py-1 text-xs ${appointment.status === 'COMPLETED' ? 'bg-green-100 text-green-800' :
-                          appointment.status === 'CONFIRMED' ? 'bg-blue-100 text-blue-800' :
-                            appointment.status === 'PENDING' ? 'bg-yellow-100 text-yellow-800' :
-                              'bg-red-100 text-red-800'
-                          }`}>
-                          {appointment.status}
-                        </Badge>
-                      </div>
-                    </div>
-                  ))
-                ) : (
-                  <div className="text-center py-8">
-                    <Calendar className="w-12 h-12 text-[#6d4c41] mx-auto mb-4" />
-                    <p className="text-[#6d4c41]">No recent appointments</p>
-                  </div>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Quick Actions */}
-        <div className="mt-8">
-          <Card className="border-0 bg-white shadow-lg">
+          {/* Quick Actions */}
+          <Card className="border-0 bg-white shadow-lg h-full">
             <CardHeader>
               <CardTitle className="text-xl font-serif font-bold text-[#4e342e]">
                 Quick Actions
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <Link to="/manager/pending-vendors">
                   <Button className="bg-[#4e342e] hover:bg-[#3b2c26] text-white justify-start h-auto p-4 w-full">
                     <div className="text-left">
@@ -489,24 +434,6 @@ const ManagerDashboard = () => {
                       <Building className="w-5 h-5 mb-2" />
                       <div className="font-semibold">All Vendors</div>
                       <div className="text-xs opacity-80">Manage vendors</div>
-                    </div>
-                  </Button>
-                </Link>
-                <Link to="/manager/appointments">
-                  <Button variant="outline" className="border-[#4e342e] text-[#4e342e] hover:bg-[#4e342e] hover:text-white justify-start h-auto p-4 w-full">
-                    <div className="text-left">
-                      <Calendar className="w-5 h-5 mb-2" />
-                      <div className="font-semibold">Appointments</div>
-                      <div className="text-xs opacity-80">Manage bookings</div>
-                    </div>
-                  </Button>
-                </Link>
-                <Link to="/manager/at-home-appointments">
-                  <Button variant="outline" className="border-[#4e342e] text-[#4e342e] hover:bg-[#4e342e] hover:text-white justify-start h-auto p-4 w-full">
-                    <div className="text-left">
-                      <Home className="w-5 h-5 mb-2" />
-                      <div className="font-semibold">At-Home Appointments</div>
-                      <div className="text-xs opacity-80">Assign vendors</div>
                     </div>
                   </Button>
                 </Link>

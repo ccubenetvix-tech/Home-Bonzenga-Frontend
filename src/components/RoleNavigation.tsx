@@ -47,7 +47,6 @@ const RoleNavigation: React.FC<RoleNavigationProps> = ({ isMobile = false }) => 
       { path: '/manager/at-home-bookings', label: 'At-Home Bookings', icon: Sparkles },
       { path: '/manager/vendors', label: t('nav.vendors'), icon: Building },
       { path: '/manager/pending-vendors', label: t('nav.pendingVendors'), icon: AlertCircle },
-      { path: '/manager/appointments', label: t('nav.appointments'), icon: Calendar },
     ],
     ADMIN: [
       { path: '/admin', label: t('nav.dashboard'), icon: Settings },
