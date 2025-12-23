@@ -171,13 +171,8 @@ const App = () => {
                         <Route path="/supabase-test" element={<SupabaseTest />} />
                         <Route path="/auth/callback" element={<OAuthCallbackPage />} />
                         <Route path="/auth/confirm-email" element={<EmailConfirmationCallback />} />
-<<<<<<< Updated upstream
                         <Route path="/auth/verify" element={<VerifyPage />} />
-                        <Route path="/verify-email" element={<VendorEmailVerificationPage />} />
-=======
-                        <Route path="/auth/verify" element={<EmailConfirmationCallback />} />
                         <Route path="/verify-email" element={<VerifyEmailPage />} />
->>>>>>> Stashed changes
                         <Route path="/at-home-services" element={<AtHomeIntroPage />} />
                         <Route path="/salon-visit" element={<SalonVisitPage />} />
                         <Route path="/vendor/:id" element={<VendorDetailsPage />} />

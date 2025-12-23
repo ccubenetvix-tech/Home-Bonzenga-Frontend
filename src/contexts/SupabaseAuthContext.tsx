@@ -586,7 +586,6 @@ export const SupabaseAuthProvider = ({ children }: { children: React.ReactNode }
           throw new Error(data.message || 'Registration failed');
         }
 
-<<<<<<< Updated upstream
         const result = await supabase.auth.signUp({
           email: userData.email,
           password: password,
@@ -646,11 +645,6 @@ export const SupabaseAuthProvider = ({ children }: { children: React.ReactNode }
           const dashboardPath = getDashboardPath(result.data.user?.user_metadata?.role || 'CUSTOMER');
           navigate(dashboardPath);
         }
-=======
-        toast.success(data.message || 'Registration successful! Please check your email.');
-        // Navigate to login or a verification instructions page
-        navigate('/login');
->>>>>>> Stashed changes
       }
     } catch (err: any) {
       console.error('Signup error:', err);
@@ -664,7 +658,6 @@ export const SupabaseAuthProvider = ({ children }: { children: React.ReactNode }
   const registerVendorAccount = async (payload: VendorRegistrationPayload) => {
     setIsLoading(true);
     try {
-<<<<<<< Updated upstream
       if (!supabaseConfig.isConfigured) {
         throw new Error('Supabase is not configured. Please contact support.');
       }
@@ -968,26 +961,6 @@ export const SupabaseAuthProvider = ({ children }: { children: React.ReactNode }
         console.error('Failed to generate/send vendor verification link:', linkErr);
         toast.warning('Account created, but we couldn\'t send the verification email.');
       }
-
-=======
-      // Call Backend API for Vendor Registration
-      const response = await fetch(getApiUrl('/auth/register-vendor'), {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        // If rate limited or error
-        throw new Error(data.message || 'Vendor registration failed');
-      }
-
-      toast.success(data.message || 'Registration successful! Please check your email.');
-
-      // Navigate to login or pending approval page?
->>>>>>> Stashed changes
       navigate('/login');
 
     } catch (error: any) {

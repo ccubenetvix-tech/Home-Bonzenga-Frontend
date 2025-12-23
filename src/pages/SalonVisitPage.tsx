@@ -5,7 +5,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { motion } from 'framer-motion';
 import Navigation from '@/components/Navigation';
 import { useSupabaseAuth } from '@/contexts/SupabaseAuthContext';
-import { 
+import {
   Building,
   UserCheck,
   Star,
@@ -27,7 +27,8 @@ import {
   Package,
   Settings,
   Brush,
-  Droplets
+  Droplets,
+  Search
 } from 'lucide-react';
 
 // Assets
@@ -44,13 +45,7 @@ interface Vendor {
   address: string;
   city: string;
   state: string;
-  zipCode: string;
   status: string;
-  user: {
-    firstName: string;
-    lastName: string;
-  };
-  services: any[];
 }
 
 const SalonVisitPage = () => {
@@ -58,13 +53,13 @@ const SalonVisitPage = () => {
   const navigate = useNavigate();
   const [vendors, setVendors] = useState<Vendor[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isSearching, setIsSearching] = useState(false);
+  const [searchInputValue, setSearchInputValue] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [salonPage, setSalonPage] = useState(1);
   const pageSize = 6;
 
-  // Default salons to ensure we always show at least six
-  const defaultSalons: Vendor[] = [
-  ];
+  // No default salons or placeholders allowed as per strict policy
 
   const fadeInUp = {
     initial: { opacity: 0, y: 60 },
@@ -81,50 +76,57 @@ const SalonVisitPage = () => {
   };
 
   useEffect(() => {
-    fetchVendors();
+    fetchVendors('', true); // Initial load
   }, []);
 
-  const fetchVendors = async () => {
+  const handleSearch = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    const query = searchInputValue.trim();
+    setSalonPage(1);
+    fetchVendors(query);
+  };
+
+  const fetchVendors = async (search: string = '', isInitial: boolean = false) => {
     try {
-      setLoading(true);
-      const response = await fetch('http://localhost:3001/api/vendors?status=APPROVED');
-      
+      if (isInitial) setLoading(true);
+      else setIsSearching(true);
+
+      const url = new URL('http://localhost:3001/api/vendors');
+      url.searchParams.append('status', 'APPROVED');
+      if (search) {
+        url.searchParams.append('search', search);
+      }
+
+      const response = await fetch(url.toString());
+
       if (!response.ok) {
         throw new Error('Failed to fetch vendors');
       }
-      
-      const data = await response.json();
-      
-      // Transform the data to match our interface
-      const transformedVendors = (data.vendors || data.data || []).map((vendor: any) => ({
-        id: vendor.id,
-        shopName: vendor.shopName || vendor.name,
-        description: vendor.description || '',
-        address: vendor.address || '',
-        city: vendor.city || '',
-        state: vendor.state || '',
-        zipCode: vendor.zipCode || '',
-        status: vendor.status,
-        user: vendor.user || { firstName: '', lastName: '' },
-        services: vendor.services || []
-      }));
-      
-      // Ensure at least six by topping up with defaults (no duplicate names)
-      const existingNames = new Set(transformedVendors.map(v => v.shopName));
-      const fillers = defaultSalons.filter(d => !existingNames.has(d.shopName));
-      const toppedUp = transformedVendors.length >= 6
-        ? transformedVendors
-        : [...transformedVendors, ...fillers].slice(0, 6);
 
-      setVendors(toppedUp);
+      const data = await response.json();
+
+      // Transform the data to match our strict interface
+      // Frontend must trust backend 100%
+      const transformedVendors = (data.vendors || [])
+        .map((vendor: any) => ({
+          id: vendor.id,
+          shopName: vendor.shopName, // Strictly mapping shopName from backend
+          description: vendor.description || '',
+          address: vendor.address || '',
+          city: vendor.city || '',
+          state: vendor.state || '',
+          status: vendor.status
+        }));
+
+      setVendors(transformedVendors);
       setError(null);
     } catch (err) {
       console.error('Error fetching vendors:', err);
-      // Show defaults so the page always has content
-      setVendors(defaultSalons);
-      setError(null);
+      setError('Unable to load verified salons. Please try again later.');
+      setVendors([]);
     } finally {
       setLoading(false);
+      setIsSearching(false);
     }
   };
 
@@ -147,9 +149,8 @@ const SalonVisitPage = () => {
         {pages.map((p) => (
           <button
             key={p}
-            className={`px-3 py-1 rounded-md text-sm ${
-              p === page ? 'bg-[#4e342e] text-white' : 'bg-white text-[#4e342e] border border-[#d7ccc8]'
-            }`}
+            className={`px-3 py-1 rounded-md text-sm ${p === page ? 'bg-[#4e342e] text-white' : 'bg-white text-[#4e342e] border border-[#d7ccc8]'
+              }`}
             onClick={() => onChange(p)}
           >
             {p}
@@ -198,12 +199,12 @@ const SalonVisitPage = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
           <div className="grid lg:grid-cols-2 gap-12 items-center">
             {/* Left Content */}
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, x: -50 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.8 }}
             >
-              <motion.div 
+              <motion.div
                 className="inline-flex items-center px-4 py-2 rounded-full bg-[#f8d7da]/20 text-[#4e342e] text-sm font-medium mb-6"
                 variants={fadeInUp}
               >
@@ -211,7 +212,7 @@ const SalonVisitPage = () => {
                 Premium Salon Experience
               </motion.div>
 
-              <motion.h1 
+              <motion.h1
                 className="text-4xl sm:text-5xl lg:text-6xl font-serif font-bold text-[#4e342e] mb-6 leading-tight"
                 variants={fadeInUp}
               >
@@ -219,7 +220,7 @@ const SalonVisitPage = () => {
                 <span className="block text-[#6d4c41]">Partner Salons</span>
               </motion.h1>
 
-              <motion.p 
+              <motion.p
                 className="text-lg text-[#6d4c41] leading-relaxed max-w-lg font-sans mb-8"
                 variants={fadeInUp}
               >
@@ -227,13 +228,13 @@ const SalonVisitPage = () => {
               </motion.p>
 
               {!user && (
-                <motion.div 
+                <motion.div
                   className="flex flex-col sm:flex-row gap-4"
                   variants={fadeInUp}
                 >
                   <Link to="/register">
-                    <Button 
-                      variant="outline" 
+                    <Button
+                      variant="outline"
                       className="border-2 border-[#4e342e] text-[#4e342e] hover:bg-[#4e342e] hover:text-white px-8 py-4 text-lg font-semibold rounded-xl transition-all duration-300"
                     >
                       <UserCheck className="w-5 h-5 mr-2" />
@@ -245,7 +246,7 @@ const SalonVisitPage = () => {
             </motion.div>
 
             {/* Right Content - Hero Image */}
-            <motion.div 
+            <motion.div
               className="relative"
               initial={{ opacity: 0, x: 50 }}
               animate={{ opacity: 1, x: 0 }}
@@ -258,9 +259,9 @@ const SalonVisitPage = () => {
                   className="w-full h-[600px] object-cover"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-black/20" />
-                
+
                 {/* Floating Badge */}
-                <motion.div 
+                <motion.div
                   className="absolute top-6 left-6 bg-white/95 backdrop-blur-sm rounded-2xl p-4 shadow-lg"
                   initial={{ opacity: 0, scale: 0.8 }}
                   animate={{ opacity: 1, scale: 1 }}
@@ -285,7 +286,7 @@ const SalonVisitPage = () => {
       {/* Features Section */}
       <section className="py-20 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <motion.div 
+          <motion.div
             className="text-center mb-16"
             initial={{ opacity: 0, y: 50 }}
             whileInView={{ opacity: 1, y: 0 }}
@@ -300,7 +301,7 @@ const SalonVisitPage = () => {
             </p>
           </motion.div>
 
-          <motion.div 
+          <motion.div
             className="grid grid-cols-1 md:grid-cols-3 gap-8"
             variants={stagger}
             initial="initial"
@@ -347,7 +348,7 @@ const SalonVisitPage = () => {
       {/* Partner Salons Section */}
       <section className="py-20 bg-[#fdf6f0]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <motion.div 
+          <motion.div
             className="text-center mb-16"
             initial={{ opacity: 0, y: 50 }}
             whileInView={{ opacity: 1, y: 0 }}
@@ -357,9 +358,42 @@ const SalonVisitPage = () => {
             <h2 className="text-3xl sm:text-4xl font-serif font-bold text-[#4e342e] mb-6">
               Our Partner Salons
             </h2>
-            <p className="text-lg text-[#6d4c41] max-w-2xl mx-auto">
+            <p className="text-lg text-[#6d4c41] max-w-2xl mx-auto mb-10">
               Discover our network of premium salons offering exceptional beauty services.
             </p>
+
+            {/* Premium Redesigned Compact Search Bar */}
+            <div className="max-w-xl mx-auto mb-12 px-4">
+              <form
+                onSubmit={handleSearch}
+                className="relative group flex items-center bg-white rounded-full border border-[#d7ccc8]/40 shadow-sm hover:shadow-md focus-within:shadow-lg focus-within:border-[#4e342e]/30 transition-all duration-300"
+              >
+                <div className="flex items-center flex-grow pl-6">
+                  <Search className={`w-4 h-4 mr-3 ${isSearching ? 'text-[#4e342e] animate-pulse' : 'text-[#6d4c41]/50'}`} />
+                  <input
+                    type="text"
+                    placeholder="Search by salon name, city, or keyword..."
+                    className="w-full py-3.5 bg-transparent outline-none text-[#4e342e] placeholder:text-[#6d4c41]/40 font-sans text-sm"
+                    value={searchInputValue}
+                    onChange={(e) => setSearchInputValue(e.target.value)}
+                  />
+                </div>
+
+                <div className="p-1 px-1.5 flex items-center">
+                  <Button
+                    type="submit"
+                    disabled={isSearching}
+                    className="bg-[#4e342e] hover:bg-[#3b2c26] text-white text-xs font-bold uppercase tracking-wider px-6 py-2.5 rounded-full transition-all duration-300 flex items-center min-w-[100px] justify-center"
+                  >
+                    {isSearching ? (
+                      <div className="w-4 h-4 rounded-full border-2 border-t-white border-white/20 animate-spin" />
+                    ) : (
+                      'Search'
+                    )}
+                  </Button>
+                </div>
+              </form>
+            </div>
           </motion.div>
 
           {error && (
@@ -367,87 +401,88 @@ const SalonVisitPage = () => {
               <p className="text-red-600">{error}</p>
             </div>
           )}
-          
+
           {vendors.length === 0 && !loading && (
             <div className="text-center py-16">
-              <Building className="w-16 h-16 text-[#6d4c41] mx-auto mb-4" />
-              <p className="text-xl text-[#4e342e] font-semibold mb-2">No salons available</p>
-              <p className="text-[#6d4c41]">Check back later for new partner salons.</p>
+              <Building className="w-16 h-16 text-[#6d4c41] mx-auto mb-4 opacity-10" />
+              <p className="text-xl text-[#4e342e] font-semibold mb-2">No salons found</p>
+              <p className="text-[#6d4c41]">Try searching for a different keyword or city.</p>
+              {searchInputValue.trim() !== '' && (
+                <Button
+                  variant="link"
+                  className="text-[#4e342e] mt-4 font-semibold hover:no-underline opacity-70 hover:opacity-100"
+                  onClick={() => {
+                    setSearchInputValue('');
+                    setSalonPage(1);
+                    fetchVendors('');
+                  }}
+                >
+                  Clear search & Reset
+                </Button>
+              )}
             </div>
           )}
 
-          <motion.div 
-            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8"
+          <motion.div
+            className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 transition-opacity duration-300 ${isSearching ? 'opacity-40' : 'opacity-100'}`}
             variants={stagger}
             initial="initial"
             whileInView="animate"
             viewport={{ once: true }}
           >
             {paginatedVendors.map((salon) => (
-              <motion.div key={salon.id} variants={fadeInUp}>
-                <Card className="group hover:shadow-2xl transition-all duration-500 border-0 bg-white overflow-hidden rounded-3xl">
-                  <div className="relative h-48 overflow-hidden bg-gradient-to-br from-[#4e342e] to-[#6d4c41]">
+              <motion.div key={salon.id} variants={fadeInUp} className="h-full">
+                <Card className="group h-full flex flex-col hover:shadow-2xl hover:shadow-[#4e342e]/10 transition-all duration-500 border-0 bg-white overflow-hidden rounded-3xl relative isolate">
+                  <div className="relative h-56 flex-shrink-0 overflow-hidden bg-gradient-to-br from-[#4e342e] to-[#6d4c41]">
                     <div className="absolute inset-0 flex items-center justify-center">
-                      <Building className="w-16 h-16 text-white/30" />
+                      <Building className="w-16 h-16 text-white/20 transform group-hover:scale-110 transition-transform duration-700" />
                     </div>
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-black/10 group-hover:from-black/50 group-hover:to-black/20 transition-all duration-300" />
-                    
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent opacity-80" />
+
                     {salon.status === 'APPROVED' && (
-                      <div className="absolute top-4 right-4">
-                        <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center">
+                      <div className="absolute top-4 right-4 z-10">
+                        <div className="w-8 h-8 bg-emerald-500/90 backdrop-blur-sm rounded-full flex items-center justify-center shadow-lg ring-2 ring-white/20">
                           <CheckCircle className="w-5 h-5 text-white" />
                         </div>
                       </div>
                     )}
-                  </div>
-                  
-                  <CardContent className="p-6">
-                    <div className="flex items-center justify-between mb-3">
-                      <h3 className="text-xl font-serif font-bold text-[#4e342e]">
-                        {salon.shopName}
-                      </h3>
-                      <div className="flex items-center space-x-1">
-                        <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-                        <span className="text-sm font-medium text-[#6d4c41]">
-                          4.8
+
+                    <div className="absolute bottom-3 left-3 z-10 max-w-[90%]">
+                      <div className="inline-flex items-center px-3 py-1.5 rounded-full bg-black/40 backdrop-blur-md border border-white/20 shadow-lg ring-1 ring-white/10">
+                        <Building className="w-3.5 h-3.5 text-white mr-2 flex-shrink-0" />
+                        <span className="text-white text-xs font-medium tracking-wide truncate">
+                          {salon.shopName}
                         </span>
                       </div>
                     </div>
-                    
-                    <div className="flex items-center text-[#6d4c41] mb-4">
-                      <MapPin className="w-4 h-4 mr-2" />
-                      <span className="text-sm">{salon.address}, {salon.city}, {salon.state}</span>
-                    </div>
-                    
-                    {salon.description && (
-                      <p className="text-sm text-[#6d4c41] mb-4 line-clamp-2">{salon.description}</p>
-                    )}
-                    
-                    <div className="mb-6">
-                      <p className="text-sm font-medium text-[#4e342e] mb-2">Services:</p>
-                      <div className="flex flex-wrap gap-1">
-                        {salon.services && salon.services.length > 0 ? (
-                          salon.services.slice(0, 3).map((service: any, idx: number) => (
-                            <span 
-                              key={idx}
-                              className="px-2 py-1 bg-[#f8d7da]/20 text-[#4e342e] text-xs rounded-full"
-                            >
-                              {service.name}
-                            </span>
-                          ))
-                        ) : (
-                          <span className="text-xs text-[#6d4c41]">No services listed</span>
-                        )}
+                  </div>
+
+                  <CardContent className="p-6 flex flex-col flex-grow relative">
+                    <div className="mb-4">
+                      {/* Shop Name removed from here to avoid duplication as requested */}
+                      <div className="flex items-start text-[#6d4c41]/80 min-h-[40px]">
+                        <MapPin className="w-4 h-4 mr-2 mt-0.5 flex-shrink-0 opacity-70" />
+                        <span className="text-sm font-medium leading-relaxed line-clamp-2">
+                          {salon.address}, {salon.city}, {salon.state}
+                        </span>
                       </div>
                     </div>
-                    
-                    <Button 
-                      className="w-full bg-[#4e342e] hover:bg-[#3b2c26] text-white rounded-xl transition-all duration-300"
-                      onClick={() => handleBookAppointment(salon.id)}
-                    >
-                      Book Appointment
-                      <ArrowRight className="w-4 h-4 ml-2" />
-                    </Button>
+
+                    <div className="flex-grow mb-6"></div>
+
+                    <div className="mt-auto pt-5 border-t border-[#f2e6e1]">
+                      <div className="flex flex-wrap gap-2 mb-5">
+                        <span className="text-xs text-[#8d6e63] italic">Experience premium care</span>
+                      </div>
+
+                      <Button
+                        className="w-full h-12 bg-[#4e342e] hover:bg-[#3b2c26] text-white text-sm font-semibold tracking-wide uppercase rounded-xl shadow-lg hover:shadow-xl hover:shadow-[#4e342e]/20 transition-all duration-300 group-hover:-translate-y-0.5"
+                        onClick={() => handleBookAppointment(salon.id)}
+                      >
+                        Book Appointment
+                        <ArrowRight className="w-4 h-4 ml-2" />
+                      </Button>
+                    </div>
                   </CardContent>
                 </Card>
               </motion.div>
@@ -455,10 +490,10 @@ const SalonVisitPage = () => {
           </motion.div>
           <Pagination page={salonPage} total={totalSalonPages} onChange={(p) => setSalonPage(p)} />
         </div>
-      </section>
+      </section >
 
       {/* CTA Section */}
-      <section className="py-20 bg-[#4e342e]">
+      < section className="py-20 bg-[#4e342e]" >
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <motion.div
             initial={{ opacity: 0, y: 50 }}
@@ -481,8 +516,8 @@ const SalonVisitPage = () => {
                   </Button>
                 </Link>
                 <Link to="/login">
-                  <Button 
-                    variant="outline" 
+                  <Button
+                    variant="outline"
                     className="border-2 border-white text-white hover:bg-white hover:text-[#4e342e] px-8 py-4 text-lg font-semibold rounded-xl transition-all duration-300"
                   >
                     Sign In
@@ -492,8 +527,8 @@ const SalonVisitPage = () => {
             )}
           </motion.div>
         </div>
-      </section>
-    </div>
+      </section >
+    </div >
   );
 };
 
