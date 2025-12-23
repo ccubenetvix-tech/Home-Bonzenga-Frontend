@@ -415,10 +415,11 @@ const AdminDashboard = () => {
           </div>
         )}
 
-        {/* Stats Cards */}
+        {/* Stats and Monitoring Overview */}
         {stats && (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-            <Card className="border-0 bg-white shadow-lg hover:shadow-xl transition-all duration-300 rounded-lg">
+            {/* Total Users */}
+            <Card className="border-0 bg-white shadow-lg hover:shadow-xl transition-all duration-300 rounded-lg h-full">
               <CardContent className="p-6">
                 <div className="flex items-center justify-between">
                   <div>
@@ -437,7 +438,8 @@ const AdminDashboard = () => {
               </CardContent>
             </Card>
 
-            <Card className="border-0 bg-white shadow-lg hover:shadow-xl transition-all duration-300 rounded-lg">
+            {/* Total Vendors */}
+            <Card className="border-0 bg-white shadow-lg hover:shadow-xl transition-all duration-300 rounded-lg h-full">
               <CardContent className="p-6">
                 <div className="flex items-center justify-between">
                   <div>
@@ -456,49 +458,8 @@ const AdminDashboard = () => {
               </CardContent>
             </Card>
 
-            <Card className="border-0 bg-white shadow-lg hover:shadow-xl transition-all duration-300 rounded-lg">
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-[#6d4c41]">Total Managers</p>
-                    <p className="text-2xl font-bold text-[#4e342e]">{stats.totalManagers.toLocaleString()}</p>
-                    <div className="flex items-center mt-2">
-                      <Badge className="bg-[#f8d7da]/30 text-[#4e342e] text-xs">
-                        {stats.totalManagers} Active
-                      </Badge>
-                    </div>
-                  </div>
-                  <div className="w-12 h-12 bg-gradient-to-br from-[#4e342e] to-[#6d4c41] rounded-lg flex items-center justify-center">
-                    <UserCheck className="w-6 h-6 text-white" />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="border-0 bg-white shadow-lg hover:shadow-xl transition-all duration-300 rounded-lg">
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-[#6d4c41]">Total Revenue</p>
-                    <p className="text-2xl font-bold text-[#4e342e]">${stats.totalRevenue.toLocaleString()}</p>
-                    <div className="flex items-center mt-2">
-                      <TrendingUp className="w-4 h-4 text-[#6d4c41] mr-1" />
-                      <span className="text-sm text-[#6d4c41]">${stats.monthlyRevenue} this month</span>
-                    </div>
-                  </div>
-                  <div className="w-12 h-12 bg-gradient-to-br from-[#4e342e] to-[#6d4c41] rounded-lg flex items-center justify-center">
-                    <DollarSign className="w-6 h-6 text-white" />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        )}
-
-        {/* Additional Stats Row */}
-        {stats && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-            <Card className="border-0 bg-white shadow-lg hover:shadow-xl transition-all duration-300 rounded-lg">
+            {/* Pending Approvals */}
+            <Card className="border-0 bg-white shadow-lg hover:shadow-xl transition-all duration-300 rounded-lg h-full">
               <CardContent className="p-6">
                 <div className="flex items-center justify-between">
                   <div>
@@ -517,15 +478,35 @@ const AdminDashboard = () => {
               </CardContent>
             </Card>
 
-            <Card className="border-0 bg-white shadow-lg hover:shadow-xl transition-all duration-300 rounded-lg">
+            {/* At Home Bookings */}
+            <Card className="border-0 bg-white shadow-lg hover:shadow-xl transition-all duration-300 rounded-lg h-full">
               <CardContent className="p-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium text-[#6d4c41]">Total Bookings</p>
-                    <p className="text-2xl font-bold text-[#4e342e]">{stats.totalBookings.toLocaleString()}</p>
+                    <p className="text-sm font-medium text-[#6d4c41]">At Home Bookings</p>
+                    <p className="text-2xl font-bold text-[#4e342e]">{stats.atHomeBookings.toLocaleString()}</p>
                     <div className="flex items-center mt-2">
-                      <CheckCircle className="w-4 h-4 text-[#6d4c41] mr-1" />
-                      <span className="text-sm text-[#6d4c41]">{stats.completedBookings} completed</span>
+                      <Home className="w-4 h-4 text-[#6d4c41] mr-1" />
+                      <span className="text-sm text-[#6d4c41]">Lifetime Total</span>
+                    </div>
+                  </div>
+                  <div className="w-12 h-12 bg-gradient-to-br from-[#4e342e] to-[#6d4c41] rounded-lg flex items-center justify-center">
+                    <Sparkles className="w-6 h-6 text-white" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* At Salon Bookings */}
+            <Card className="border-0 bg-white shadow-lg hover:shadow-xl transition-all duration-300 rounded-lg h-full">
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-[#6d4c41]">At Salon Bookings</p>
+                    <p className="text-2xl font-bold text-[#4e342e]">{stats.salonBookings.toLocaleString()}</p>
+                    <div className="flex items-center mt-2">
+                      <Scissors className="w-4 h-4 text-[#6d4c41] mr-1" />
+                      <span className="text-sm text-[#6d4c41]">Lifetime Total</span>
                     </div>
                   </div>
                   <div className="w-12 h-12 bg-gradient-to-br from-[#4e342e] to-[#6d4c41] rounded-lg flex items-center justify-center">
@@ -535,7 +516,8 @@ const AdminDashboard = () => {
               </CardContent>
             </Card>
 
-            <Card className="border-0 bg-white shadow-lg hover:shadow-xl transition-all duration-300 rounded-lg">
+            {/* Pending Payouts */}
+            <Card className="border-0 bg-white shadow-lg hover:shadow-xl transition-all duration-300 rounded-lg h-full">
               <CardContent className="p-6">
                 <div className="flex items-center justify-between">
                   <div>
@@ -554,77 +536,15 @@ const AdminDashboard = () => {
               </CardContent>
             </Card>
 
-            <Card className="border-0 bg-white shadow-lg hover:shadow-xl transition-all duration-300 rounded-lg">
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-[#6d4c41]">Refund Requests</p>
-                    <p className="text-2xl font-bold text-[#4e342e]">{stats.refundRequests}</p>
-                    <div className="flex items-center mt-2">
-                      <Badge className="bg-[#6d4c41]/20 text-[#6d4c41] text-xs">
-                        Needs Review
-                      </Badge>
-                    </div>
-                  </div>
-                  <div className="w-12 h-12 bg-gradient-to-br from-[#4e342e] to-[#6d4c41] rounded-lg flex items-center justify-center">
-                    <RefreshCw className="w-6 h-6 text-white" />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        )}
-
-        {/* Catalog Stats Row */}
-        {stats && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-            <Card className="border-0 bg-white shadow-lg hover:shadow-xl transition-all duration-300 rounded-lg">
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-[#6d4c41]">Catalog Services</p>
-                    <p className="text-2xl font-bold text-[#4e342e]">{stats.totalCatalogServices}</p>
-                    <div className="flex items-center mt-2">
-                      <Badge className="bg-green-500 text-white text-xs">
-                        {stats.activeCatalogServices} Active
-                      </Badge>
-                    </div>
-                  </div>
-                  <div className="w-12 h-12 bg-gradient-to-br from-[#4e342e] to-[#6d4c41] rounded-lg flex items-center justify-center">
-                    <Scissors className="w-6 h-6 text-white" />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="border-0 bg-white shadow-lg hover:shadow-xl transition-all duration-300 rounded-lg">
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-[#6d4c41]">Catalog Products</p>
-                    <p className="text-2xl font-bold text-[#4e342e]">{stats.totalCatalogProducts}</p>
-                    <div className="flex items-center mt-2">
-                      <Badge className="bg-green-500 text-white text-xs">
-                        {stats.activeCatalogProducts} Active
-                      </Badge>
-                    </div>
-                  </div>
-                  <div className="w-12 h-12 bg-gradient-to-br from-[#4e342e] to-[#6d4c41] rounded-lg flex items-center justify-center">
-                    <Package className="w-6 h-6 text-white" />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="border-0 bg-white shadow-lg hover:shadow-xl transition-all duration-300 rounded-lg cursor-pointer" onClick={() => window.location.href = '/admin/at-home-bookings'}>
+            {/* Bookings Monitor (At Home) */}
+            <Card className="border-0 bg-white shadow-lg hover:shadow-xl transition-all duration-300 rounded-lg cursor-pointer h-full" onClick={() => window.location.href = '/admin/at-home-bookings'}>
               <CardContent className="p-6">
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm font-medium text-[#6d4c41]">Bookings Monitor</p>
-                    <p className="text-2xl font-bold text-[#4e342e]">Live View</p>
-
+                    <p className="text-2xl font-bold text-[#4e342e]">At-Home Live</p>
                     <div className="flex items-center mt-2 text-primary font-medium text-xs">
-                      View all salon bookings <ArrowRight className="w-3 h-3 ml-1" />
+                      View details <ArrowRight className="w-3 h-3 ml-1" />
                     </div>
                   </div>
                   <div className="w-12 h-12 bg-gradient-to-br from-[#4e342e] to-[#6d4c41] rounded-lg flex items-center justify-center">
@@ -633,17 +553,16 @@ const AdminDashboard = () => {
                 </div>
               </CardContent>
             </Card>
-            <Card className="border-0 bg-white shadow-lg hover:shadow-xl transition-all duration-300 rounded-lg cursor-pointer" onClick={() => window.location.href = '/admin/at-salon-services'}>
+
+            {/* Salon Services Monitor (At Salon) */}
+            <Card className="border-0 bg-white shadow-lg hover:shadow-xl transition-all duration-300 rounded-lg cursor-pointer h-full" onClick={() => window.location.href = '/admin/at-salon-services'}>
               <CardContent className="p-6">
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm font-medium text-[#6d4c41]">Salon Services Monitor</p>
-                    <p className="text-2xl font-bold text-[#4e342e]">Live Salon Bookings</p>
-
-                    <div className="flex flex-col mt-2">
-                      <div className="flex items-center mt-2 text-primary font-medium text-xs">
-                        View all salon bookings <ArrowRight className="w-3 h-3 ml-1" />
-                      </div>
+                    <p className="text-2xl font-bold text-[#4e342e]">Salon Live</p>
+                    <div className="flex items-center mt-2 text-primary font-medium text-xs">
+                      View details <ArrowRight className="w-3 h-3 ml-1" />
                     </div>
                   </div>
                   <div className="w-12 h-12 bg-gradient-to-br from-[#4e342e] to-[#6d4c41] rounded-lg flex items-center justify-center">
