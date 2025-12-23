@@ -21,28 +21,22 @@ const Contact: React.FC = () => {
 
   const contactMethods = [
     {
+      icon: MapPin,
+      title: 'HOME BONZENGA (HBZ)',
+      description: 'Our Location',
+      info: 'Kinshasa, R. D. CONGO'
+    },
+    {
       icon: Mail,
       title: 'Email Support',
-      description: 'Send us a detailed message',
-      info: 'support@beautyapp.com'
+      description: 'Contact us via email',
+      info: 'homebonzenga@outlook.com'
     },
     {
       icon: Phone,
       title: 'Phone Support',
-      description: 'Speak directly with our support team',
-      info: '+1 234 567 890'
-    },
-    {
-      icon: MapPin,
-      title: 'Office Address',
-      description: 'Visit us at our main office',
-      info: '123 Beauty Street, City, Country'
-    },
-    {
-      icon: Clock,
-      title: 'Working Hours',
-      description: 'We are available during these hours',
-      info: 'Mon-Fri: 9 AM - 6 PM'
+      description: 'Speak with our team',
+      info: '+32 495 84 68 66'
     }
   ];
 
@@ -72,7 +66,7 @@ const Contact: React.FC = () => {
             Choose the best method to get in touch with our team
           </p>
 
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mt-12">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mt-12">
             {contactMethods.map((method, index) => (
               <Card key={index} className="text-center hover:shadow-xl transition-all duration-300 border-0 bg-[#fdf6f0] rounded-2xl">
                 <CardContent className="p-8">

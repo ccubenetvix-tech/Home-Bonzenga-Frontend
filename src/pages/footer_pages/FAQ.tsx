@@ -3,9 +3,9 @@ import { useTranslation } from 'react-i18next';
 import Navigation from '@/components/Navigation';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { 
-  Search, 
-  ChevronDown, 
+import {
+  Search,
+  ChevronDown,
   ChevronUp,
   HelpCircle,
   MessageCircle,
@@ -35,7 +35,7 @@ const FAQ: React.FC = () => {
       id: 3,
       category: "Booking",
       question: "How far in advance can I book?",
-      answer: "You can book services up to 30 days in advance. For same-day bookings, availability depends on our beauticians' schedules."
+      answer: "You can book services up to 10 days in advance. For same-day bookings, availability depends on our beauticians' schedules."
     },
     {
       id: 4,
@@ -97,7 +97,7 @@ const FAQ: React.FC = () => {
 
   const filteredFaqs = faqs.filter(faq => {
     const matchesSearch = faq.question.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         faq.answer.toLowerCase().includes(searchQuery.toLowerCase());
+      faq.answer.toLowerCase().includes(searchQuery.toLowerCase());
     return matchesSearch;
   });
 
@@ -108,7 +108,7 @@ const FAQ: React.FC = () => {
   return (
     <div className="min-h-screen bg-[#fdf6f0]">
       <Navigation />
-      
+
       {/* Hero Section */}
       <section className="pt-40 pb-16 bg-gradient-to-br from-[#4e342e] to-[#3b2c26] text-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -119,7 +119,7 @@ const FAQ: React.FC = () => {
             <p className="text-xl text-white/90 max-w-3xl mx-auto leading-relaxed mb-8">
               Find answers to the most common questions about our services
             </p>
-            
+
             {/* Search Bar */}
             <div className="max-w-2xl mx-auto">
               <div className="relative">
@@ -164,7 +164,7 @@ const FAQ: React.FC = () => {
                       <ChevronDown className="w-5 h-5 text-[#4e342e] flex-shrink-0" />
                     )}
                   </button>
-                  
+
                   {expandedFaq === faq.id && (
                     <div className="px-6 pb-6">
                       <div className="border-t border-white/30 pt-4">
@@ -181,72 +181,6 @@ const FAQ: React.FC = () => {
         </div>
       </section>
 
-      {/* Still Need Help */}
-      <section className="py-20 bg-[#fdf6f0]">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center">
-            <h2 className="text-3xl lg:text-4xl font-serif font-bold text-[#4e342e] mb-6">
-              Still Need Help?
-            </h2>
-            <p className="text-xl text-[#6d4c41] max-w-3xl mx-auto mb-12">
-              Can't find the answer you're looking for? Our support team is here to help.
-            </p>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-              <Card className="text-center hover:shadow-xl transition-all duration-300 border-0 bg-white rounded-2xl">
-                <CardContent className="p-8">
-                  <div className="w-16 h-16 bg-[#4e342e] rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg">
-                    <MessageCircle className="w-8 h-8 text-white" />
-                  </div>
-                  <h3 className="text-xl font-serif font-bold mb-4 text-[#4e342e]">
-                    Live Chat
-                  </h3>
-                  <p className="text-[#6d4c41] leading-relaxed mb-6">
-                    Get instant help from our support team
-                  </p>
-                  <button className="bg-[#4e342e] hover:bg-[#3b2c26] text-white px-6 py-3 rounded-xl font-semibold transition-all duration-300 w-full">
-                    Start Chat
-                  </button>
-                </CardContent>
-              </Card>
-
-              <Card className="text-center hover:shadow-xl transition-all duration-300 border-0 bg-white rounded-2xl">
-                <CardContent className="p-8">
-                  <div className="w-16 h-16 bg-[#4e342e] rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg">
-                    <Phone className="w-8 h-8 text-white" />
-                  </div>
-                  <h3 className="text-xl font-serif font-bold mb-4 text-[#4e342e]">
-                    Phone Support
-                  </h3>
-                  <p className="text-[#6d4c41] leading-relaxed mb-6">
-                    Speak directly with our support team
-                  </p>
-                  <button className="bg-[#4e342e] hover:bg-[#3b2c26] text-white px-6 py-3 rounded-xl font-semibold transition-all duration-300 w-full">
-                    Call Now
-                  </button>
-                </CardContent>
-              </Card>
-
-              <Card className="text-center hover:shadow-xl transition-all duration-300 border-0 bg-white rounded-2xl">
-                <CardContent className="p-8">
-                  <div className="w-16 h-16 bg-[#4e342e] rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg">
-                    <Mail className="w-8 h-8 text-white" />
-                  </div>
-                  <h3 className="text-xl font-serif font-bold mb-4 text-[#4e342e]">
-                    Email Support
-                  </h3>
-                  <p className="text-[#6d4c41] leading-relaxed mb-6">
-                    Send us a detailed message
-                  </p>
-                  <button className="bg-[#4e342e] hover:bg-[#3b2c26] text-white px-6 py-3 rounded-xl font-semibold transition-all duration-300 w-full">
-                    Send Email
-                  </button>
-                </CardContent>
-              </Card>
-            </div>
-          </div>
-        </div>
-      </section>
     </div>
   );
 };
