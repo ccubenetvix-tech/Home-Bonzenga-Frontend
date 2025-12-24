@@ -427,7 +427,13 @@ export class SupabaseAuthService {
 
       if (authError) {
         console.warn('Auth error (not critical):', authError.message);
-        // Don't throw, just return null to allow fallback to mock auth
+
+        // Handle 403 Forbidden specifically - indicates stale/mismatched session
+        if (authError.status === 403 || authError.message?.toLowerCase().includes('forbidden')) {
+          return { success: false, error: 'Forbidden', status: 403 };
+        }
+
+        // Don't throw for other errors, just return null to allow fallback to mock auth
         return handleSupabaseSuccess(null)
       }
 
@@ -540,6 +546,12 @@ export class SupabaseAuthService {
     } catch (error: any) {
       // Be graceful; treat as no active session rather than erroring loudly
       console.warn('getCurrentSession warning:', error?.message || error)
+
+      // Handle 403 Forbidden specifically in session check
+      if (error?.status === 403 || error?.message?.toLowerCase().includes('forbidden')) {
+        return { success: false, error: 'Forbidden', status: 403 };
+      }
+
       return handleSupabaseSuccess(null)
     }
   }

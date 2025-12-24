@@ -7,6 +7,7 @@ import { supabase } from "@/lib/supabase";
 import { mockAuth } from "@/lib/mockAuth";
 import { supabaseConfig } from "@/config/supabase";
 import { getApiUrl } from "@/config/env";
+import { clearAllAuthSessions } from "@/lib/clearSession";
 
 interface VendorData {
   id: string;
@@ -232,6 +233,14 @@ export const SupabaseAuthProvider = ({ children }: { children: React.ReactNode }
           const sessionPromise = authService.getCurrentSession();
           const sessionResult = await Promise.race([sessionPromise, timeoutPromise]).catch(() => ({ success: false, data: null })) as any;
 
+          // Check if session check failed with 403 Forbidden
+          if (sessionResult?.status === 403 || sessionResult?.error === 'Forbidden') {
+            console.error('🚫 Supabase session check failed with 403 Forbidden. Clearing stale session...');
+            clearAllAuthSessions();
+            setIsLoading(false);
+            return;
+          }
+
           if (sessionResult?.success && 'data' in sessionResult && sessionResult.data) {
             // Valid Supabase session exists, proceed with user fetch
             try {
@@ -248,6 +257,14 @@ export const SupabaseAuthProvider = ({ children }: { children: React.ReactNode }
               console.warn('User fetch timeout or error:', err);
               return { success: true, data: null };
             }) as any;
+
+            // Check if user fetch failed with 403 Forbidden
+            if (userResult?.status === 403 || userResult?.error === 'Forbidden') {
+              console.error('🚫 Supabase user fetch failed with 403 Forbidden. Clearing stale session...');
+              clearAllAuthSessions();
+              setIsLoading(false);
+              return;
+            }
 
             if (userResult?.success && 'data' in userResult && userResult.data) {
               const userData = userResult.data as User;
