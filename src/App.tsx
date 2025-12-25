@@ -70,6 +70,7 @@ import AdminAtHomeServicesPage from "@/pages/admin/AtHomeServicesPage";
 import AdminAtHomeBookingsPage from "@/pages/admin/AdminAtHomeBookingsPage";
 import AdminAtHomeProductsPage from "@/pages/admin/AtHomeProductsPage";
 import ManageAtHomeCatalog from "@/pages/admin/ManageAtHomeCatalog";
+import AdminFinancePage from "@/pages/admin/AdminFinancePage";
 import AuthTest from "@/pages/AuthTest";
 import Index from "@/pages/Index";
 import NotFound from "@/pages/NotFound";
@@ -172,7 +173,7 @@ const App = () => {
                         <Route path="/auth/callback" element={<OAuthCallbackPage />} />
                         <Route path="/auth/confirm-email" element={<EmailConfirmationCallback />} />
                         <Route path="/auth/verify" element={<VerifyPage />} />
-                        <Route path="/verify-email" element={<VerifyEmailPage />} />
+
                         <Route path="/at-home-services" element={<AtHomeIntroPage />} />
                         <Route path="/salon-visit" element={<SalonVisitPage />} />
                         <Route path="/vendor/:id" element={<VendorDetailsPage />} />
@@ -577,6 +578,14 @@ const App = () => {
                           element={
                             <ProtectedRoute allowedRoles={["ADMIN"]}>
                               <AdminAtHomeBookingsPage />
+                            </ProtectedRoute>
+                          }
+                        />
+                        <Route
+                          path="/admin/finance"
+                          element={
+                            <ProtectedRoute allowedRoles={["ADMIN"]}>
+                              <AdminFinancePage />
                             </ProtectedRoute>
                           }
                         />

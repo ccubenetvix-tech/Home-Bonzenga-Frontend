@@ -106,8 +106,8 @@ const Navigation = () => {
               className="h-12 w-12 rounded-full object-cover border-2 border-[#f8d7da] shadow-md"
             />
             <div>
-              <h1 className="text-xl font-serif font-bold text-[#4e342e]">HOME BONZENGA</h1>
-              <p className="text-xs text-[#6d4c41] leading-none font-sans">Premium Beauty Services</p>
+              <h1 className="text-xl font-serif font-bold text-[#4e342e]">{t('footer.brand.name')}</h1>
+              <p className="text-xs text-[#6d4c41] leading-none font-sans">{t('footer.brand.subtitle')}</p>
             </div>
           </div>
         </div>

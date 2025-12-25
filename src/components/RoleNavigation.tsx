@@ -15,7 +15,8 @@ import {
   Scissors,
   Sparkles,
   User as UserIcon,
-  AlertCircle
+  AlertCircle,
+  DollarSign
 } from 'lucide-react';
 
 interface RoleNavigationProps {
@@ -55,6 +56,7 @@ const RoleNavigation: React.FC<RoleNavigationProps> = ({ isMobile = false }) => 
       { path: '/admin/beauticians', label: 'Beauticians', icon: UserCheck },
       { path: '/admin/at-home-services', label: 'Home Services', icon: Scissors },
       { path: '/admin/at-home-products', label: 'Home Products', icon: Package },
+      { path: '/admin/finance', label: 'Finance & Payouts', icon: DollarSign },
     ],
   };
 

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useSupabaseAuth } from "@/contexts/SupabaseAuthContext";
 import { supabase } from '@/lib/supabase';
 import { Button } from '@/components/ui/button';
@@ -53,6 +54,7 @@ interface Appointment {
 }
 
 const AppointmentsPage = () => {
+  const { t } = useTranslation();
   const { user } = useSupabaseAuth();
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [loading, setLoading] = useState(true);
@@ -62,15 +64,15 @@ const AppointmentsPage = () => {
   const [selectedEmployeeByBooking, setSelectedEmployeeByBooking] = useState<Record<string, string>>({});
 
   const statusOptions = [
-    { value: 'all', label: 'All Appointments' },
-    { value: 'PENDING', label: 'Pending' },
-    { value: 'AWAITING_VENDOR_RESPONSE', label: 'Awaiting Vendor Response' },
-    { value: 'VENDOR_CONFIRMED', label: 'Vendor Confirmed' },
-    { value: 'CONFIRMED', label: 'Confirmed' },
-    { value: 'STARTED', label: 'Started' },
-    { value: 'IN_PROGRESS', label: 'In Progress' },
-    { value: 'COMPLETED', label: 'Completed' },
-    { value: 'CANCELLED', label: 'Cancelled' }
+    { value: 'all', label: t('vendor.appointments.status.all') },
+    { value: 'PENDING', label: t('vendor.appointments.status.pending') },
+    { value: 'AWAITING_VENDOR_RESPONSE', label: t('vendor.appointments.status.awaiting_vendor_response') },
+    { value: 'VENDOR_CONFIRMED', label: t('vendor.appointments.status.vendor_confirmed') },
+    { value: 'CONFIRMED', label: t('vendor.appointments.status.confirmed') },
+    { value: 'STARTED', label: t('vendor.appointments.status.started') },
+    { value: 'IN_PROGRESS', label: t('vendor.appointments.status.in_progress') },
+    { value: 'COMPLETED', label: t('vendor.appointments.status.completed') },
+    { value: 'CANCELLED', label: t('vendor.appointments.status.cancelled') }
   ];
 
   useEffect(() => {
@@ -357,12 +359,12 @@ const AppointmentsPage = () => {
           {/* Header */}
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8">
             <div>
-              <h1 className="text-3xl font-serif font-bold text-[#4e342e] mb-2">Appointments</h1>
-              <p className="text-[#6d4c41]">Manage customer appointments and bookings</p>
+              <h1 className="text-3xl font-serif font-bold text-[#4e342e] mb-2">{t('vendor.appointments.title')}</h1>
+              <p className="text-[#6d4c41]">{t('vendor.appointments.description')}</p>
             </div>
             <div className="flex items-center space-x-2 mt-4 sm:mt-0">
               <Badge className="bg-[#4e342e] text-white">
-                {filteredAppointments.length} Total
+                {t('vendor.appointments.total', { count: filteredAppointments.length })}
               </Badge>
             </div>
           </div>
@@ -375,7 +377,7 @@ const AppointmentsPage = () => {
                   <div className="relative">
                     <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-[#6d4c41] w-4 h-4" />
                     <Input
-                      placeholder="Search by customer name or email..."
+                      placeholder={t('vendor.appointments.searchPlaceholder')}
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
                       className="pl-10 border-[#f8d7da] focus:border-[#4e342e] focus:ring-[#4e342e]/20"
@@ -416,11 +418,11 @@ const AppointmentsPage = () => {
             <Card className="border-0 bg-white shadow-lg">
               <CardContent className="p-12 text-center">
                 <Calendar className="w-16 h-16 text-[#6d4c41]/50 mx-auto mb-4" />
-                <h3 className="text-xl font-semibold text-[#4e342e] mb-2">No Appointments Found</h3>
+                <h3 className="text-xl font-semibold text-[#4e342e] mb-2">{t('vendor.appointments.no_appointments')}</h3>
                 <p className="text-[#6d4c41]">
                   {searchTerm || statusFilter !== 'all'
-                    ? 'Try adjusting your search criteria.'
-                    : 'You don\'t have any appointments yet.'}
+                    ? t('vendor.appointments.try_adjusting')
+                    : t('vendor.appointments.no_appointments_desc')}
                 </p>
               </CardContent>
             </Card>
@@ -486,7 +488,7 @@ const AppointmentsPage = () => {
                         {/* Services */}
                         <div className="flex-1">
                           <div className="space-y-1">
-                            <h4 className="text-sm font-medium text-[#4e342e]">Services:</h4>
+                            <h4 className="text-sm font-medium text-[#4e342e]">{t('vendor.appointments.services_label')}</h4>
                             {appointment.services && appointment.services.length > 0 ? (
                               appointment.services.map((serviceItem, idx) => (
                                 <div key={idx} className="text-sm text-[#6d4c41]">
@@ -494,7 +496,7 @@ const AppointmentsPage = () => {
                                 </div>
                               ))
                             ) : (
-                              <div className="text-sm text-[#6d4c41]">No services listed</div>
+                              <div className="text-sm text-[#6d4c41]">{t('vendor.appointments.no_services')}</div>
                             )}
                           </div>
                         </div>
@@ -514,7 +516,7 @@ const AppointmentsPage = () => {
                                   className="bg-green-600 hover:bg-green-700 text-white"
                                 >
                                   <CheckCircle className="w-3 h-3 mr-1" />
-                                  Confirm
+                                  {t('vendor.appointments.confirm')}
                                 </Button>
                                 <Button
                                   size="sm"
@@ -523,7 +525,7 @@ const AppointmentsPage = () => {
                                   className="border-red-500 text-red-500 hover:bg-red-500 hover:text-white"
                                 >
                                   <X className="w-3 h-3 mr-1" />
-                                  Cancel
+                                  {t('vendor.appointments.cancel')}
                                 </Button>
                               </>
                             )}
@@ -535,7 +537,7 @@ const AppointmentsPage = () => {
                                   onChange={(e) => setSelectedEmployeeByBooking(prev => ({ ...prev, [appointment.id]: e.target.value }))}
                                   className="px-2 py-1 border border-[#f8d7da] rounded-md"
                                 >
-                                  <option value="">Assign Beautician</option>
+                                  <option value="">{t('vendor.appointments.assign_beautician')}</option>
                                   {employees.map(emp => (
                                     <option key={emp.id} value={emp.id}>
                                       {emp.name}{emp.email ? ` - ${emp.email}` : ''}
@@ -548,7 +550,7 @@ const AppointmentsPage = () => {
                                   onClick={() => assignEmployee(appointment.id, selectedEmployeeByBooking[appointment.id])}
                                   className="bg-[#4e342e] hover:bg-[#3b2c26] text-white"
                                 >
-                                  Confirm Assignment
+                                  {t('vendor.appointments.confirm_assignment')}
                                 </Button>
                               </div>
                             )}
@@ -562,7 +564,7 @@ const AppointmentsPage = () => {
                                 className="bg-green-600 hover:bg-green-700 text-white"
                               >
                                 <CheckCircle className="w-3 h-3 mr-1" />
-                                Complete
+                                {t('vendor.appointments.complete')}
                               </Button>
                             )}
 

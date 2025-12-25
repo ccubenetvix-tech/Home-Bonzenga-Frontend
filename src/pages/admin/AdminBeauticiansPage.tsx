@@ -20,7 +20,8 @@ import {
     Phone,
     Sparkles,
     MapPin,
-    Star
+    Star,
+    CheckCircle
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { api } from '@/lib/api';
@@ -35,6 +36,7 @@ interface Beautician {
     status: string;
     location?: string;
     created_at: string;
+    completed_services_count?: number;
 }
 
 const AdminBeauticiansPage = () => {
@@ -194,6 +196,10 @@ const AdminBeauticiansPage = () => {
                                                 <Sparkles className="w-4 h-4 mt-0.5" />
                                                 <span className="italic">{beautician.skills || 'No specific skills listed'}</span>
                                             </div>
+                                            <div className="flex items-center gap-2 font-medium text-green-700">
+                                                <CheckCircle className="w-4 h-4" />
+                                                <span>{beautician.completed_services_count || 0} Services Completed</span>
+                                            </div>
                                         </div>
 
                                         <div className="flex justify-between items-center mt-4 pt-4 border-t border-gray-100">
@@ -283,8 +289,8 @@ const AdminBeauticiansPage = () => {
                         </DialogFooter>
                     </DialogContent>
                 </Dialog>
-            </div>
-        </DashboardLayout>
+            </div >
+        </DashboardLayout >
     );
 };
 

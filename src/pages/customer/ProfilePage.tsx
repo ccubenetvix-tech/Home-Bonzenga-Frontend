@@ -195,15 +195,15 @@ const CustomerProfilePage = () => {
       });
 
       if (response.ok) {
-        toast.success('Profile updated successfully!');
+        toast.success(t('profile.profileUpdated'));
         setIsEditing(false);
         fetchProfileData();
       } else {
-        toast.error('Failed to update profile');
+        toast.error(t('profile.updateFailed'));
       }
     } catch (error) {
       console.error('Error updating profile:', error);
-      toast.error('Failed to update profile');
+      toast.error(t('profile.updateFailed'));
     } finally {
       setIsSaving(false);
     }
@@ -258,10 +258,10 @@ const CustomerProfilePage = () => {
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div>
                 <h1 className="text-2xl sm:text-3xl font-serif font-bold text-[#4e342e]">
-                  My Profile
+                  {t('profile.title')}
                 </h1>
                 <p className="text-base sm:text-lg text-[#6d4c41] mt-1 sm:mt-2">
-                  Manage your personal information and preferences
+                  {t('profile.subtitle')}
                 </p>
               </div>
               <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-3">
@@ -271,7 +271,7 @@ const CustomerProfilePage = () => {
                     className="bg-[#4e342e] hover:bg-[#3b2c26] text-white text-sm sm:text-base w-full sm:w-auto"
                   >
                     <Edit className="w-4 h-4 mr-2" />
-                    Edit Profile
+                    {t('dashboard.customer.editProfile')}
                   </Button>
                 ) : (
                   <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2">
@@ -285,7 +285,7 @@ const CustomerProfilePage = () => {
                       ) : (
                         <Save className="w-4 h-4 mr-2" />
                       )}
-                      Save Changes
+                      {isSaving ? t('profile.saving') : t('profile.saveChanges')}
                     </Button>
                     <Button
                       onClick={handleCancel}
@@ -293,7 +293,7 @@ const CustomerProfilePage = () => {
                       className="border-[#4e342e] text-[#4e342e] hover:bg-[#4e342e] hover:text-white text-sm sm:text-base w-full sm:w-auto"
                     >
                       <X className="w-4 h-4 mr-2" />
-                      Cancel
+                      {t('profile.cancel')}
                     </Button>
                   </div>
                 )}
@@ -308,7 +308,7 @@ const CustomerProfilePage = () => {
                 <CardHeader className="pb-3">
                   <CardTitle className="text-lg sm:text-xl font-serif font-bold text-[#4e342e] flex items-center">
                     <User className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
-                    Personal Information
+                    {t('profile.personalInfo')}
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4 sm:space-y-6 pt-0">
@@ -338,7 +338,7 @@ const CustomerProfilePage = () => {
 
                     <div>
                       <Label htmlFor="firstName" className="text-[#6d4c41] font-medium text-sm sm:text-base">
-                        First Name
+                        {t('profile.firstName')}
                       </Label>
                       {isEditing ? (
                         <Input
@@ -353,7 +353,7 @@ const CustomerProfilePage = () => {
                     </div>
                     <div>
                       <Label htmlFor="lastName" className="text-[#6d4c41] font-medium text-sm sm:text-base">
-                        Last Name
+                        {t('profile.lastName')}
                       </Label>
                       {isEditing ? (
                         <Input
@@ -370,7 +370,7 @@ const CustomerProfilePage = () => {
 
                   <div>
                     <Label htmlFor="email" className="text-[#6d4c41] font-medium">
-                      Email Address
+                      {t('profile.email')}
                     </Label>
                     <div className="mt-1 flex items-center">
                       <Mail className="w-4 h-4 mr-2 text-[#6d4c41]" />
@@ -381,7 +381,7 @@ const CustomerProfilePage = () => {
 
                   <div>
                     <Label htmlFor="phone" className="text-[#6d4c41] font-medium">
-                      Phone Number
+                      {t('profile.phone')}
                     </Label>
                     {isEditing ? (
                       <Input
@@ -427,7 +427,7 @@ const CustomerProfilePage = () => {
                   <CardTitle className="text-xl font-serif font-bold text-[#4e342e] flex items-center justify-between">
                     <div className="flex items-center">
                       <MapPin className="w-5 h-5 mr-2" />
-                      Address Information
+                      {t('profile.address')}
                     </div>
                     {isEditing && (
                       <Button variant="outline" size="sm" className="text-xs border-[#4e342e] text-[#4e342e]">
@@ -455,7 +455,7 @@ const CustomerProfilePage = () => {
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                           <div>
                             <Label htmlFor="street" className="text-[#6d4c41] font-medium">
-                              Street Address
+                              {t('profile.street')}
                             </Label>
                             <Input
                               id="street"
@@ -466,7 +466,7 @@ const CustomerProfilePage = () => {
                           </div>
                           <div>
                             <Label htmlFor="city" className="text-[#6d4c41] font-medium">
-                              City
+                              {t('profile.city')}
                             </Label>
                             <Input
                               id="city"
@@ -477,7 +477,7 @@ const CustomerProfilePage = () => {
                           </div>
                           <div>
                             <Label htmlFor="state" className="text-[#6d4c41] font-medium">
-                              State/Province
+                              {t('profile.state')}
                             </Label>
                             <Input
                               id="state"
@@ -488,7 +488,7 @@ const CustomerProfilePage = () => {
                           </div>
                           <div>
                             <Label htmlFor="zipCode" className="text-[#6d4c41] font-medium">
-                              ZIP Code
+                              {t('profile.zipCode')}
                             </Label>
                             <Input
                               id="zipCode"

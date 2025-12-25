@@ -97,7 +97,7 @@ const SalonVisitPage = () => {
       }
     } catch (error) {
       console.error('Error loading salons:', error);
-      toast.error('Failed to load salons');
+      toast.error(t('errors.failedToLoad'));
     } finally {
       setLoading(false);
     }
@@ -119,12 +119,12 @@ const SalonVisitPage = () => {
         quantity: 1
       }];
     });
-    toast.success(`Added ${service.name} to cart`);
+    toast.success(t('success.addedToCart', { item: service.name }));
   };
 
   const removeFromCart = (serviceKey: string) => {
     setSelectedServices(prev => prev.filter(s => `${s.salonId}-${s.id}` !== serviceKey));
-    toast.success('Removed from cart');
+    toast.success(t('success.removedFromCart'));
   };
 
   const updateQuantity = (serviceKey: string, newQuantity: number) => {
@@ -147,7 +147,7 @@ const SalonVisitPage = () => {
 
   const proceedToBooking = () => {
     if (selectedServices.length === 0) {
-      toast.error('Please select at least one service');
+      toast.error(t('errors.selectService'));
       return;
     }
 
@@ -156,7 +156,7 @@ const SalonVisitPage = () => {
       // Store selected services in session storage for after login
       sessionStorage.setItem('selectedServices', JSON.stringify(selectedServices));
       sessionStorage.setItem('redirectAfterLogin', '/customer/booking-confirmation');
-      toast.info('Please login to continue with your booking');
+      toast.info(t('auth.pleaseLogin'));
       navigate('/login');
       return;
     }
@@ -193,10 +193,10 @@ const SalonVisitPage = () => {
       <div className="container mx-auto py-4 sm:py-6 lg:py-8 px-3 sm:px-4">
         <div className="mb-6 sm:mb-8">
           <h1 className="text-2xl sm:text-3xl font-serif font-bold text-[#4e342e] mb-2 sm:mb-4">
-            Salon Visits
+            {t('salon.title')}
           </h1>
           <p className="text-base sm:text-lg text-[#6d4c41]">
-            Book appointments at verified salons near you
+            {t('salon.subtitle')}
           </p>
         </div>
 
@@ -208,7 +208,7 @@ const SalonVisitPage = () => {
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <Input
-                  placeholder="Search salons or services..."
+                  placeholder={t('search.searchPlaceholder')}
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="pl-10 text-sm sm:text-base"
@@ -247,7 +247,7 @@ const SalonVisitPage = () => {
                   </CardHeader>
                   <CardContent>
                     <div className="mb-4">
-                      <h4 className="font-semibold text-[#4e342e] mb-3">Available Services</h4>
+                      <h4 className="font-semibold text-[#4e342e] mb-3">{t('salon.viewDetails')}</h4>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         {salon.services.map((service) => (
                           <div key={service.id} className="border border-[#fdf6f0] rounded-lg p-4">
@@ -270,7 +270,7 @@ const SalonVisitPage = () => {
                               className="w-full bg-[#4e342e] hover:bg-[#3b2c26] text-white"
                               onClick={() => addToCart(service, salon)}
                             >
-                              Add to Cart
+                              {t('common.addToCart')}
                             </Button>
                           </div>
                         ))}
@@ -284,8 +284,8 @@ const SalonVisitPage = () => {
             {salons.length === 0 && (
               <div className="text-center py-12">
                 <Building className="w-16 h-16 text-[#6d4c41] mx-auto mb-4" />
-                <p className="text-xl font-semibold text-[#4e342e] mb-2">No salons found</p>
-                <p className="text-[#6d4c41]">Try adjusting your search criteria</p>
+                <p className="text-xl font-semibold text-[#4e342e] mb-2">{t('salon.findSalon')}</p>
+                <p className="text-[#6d4c41]">{t('search.noResults')}</p>
               </div>
             )}
           </div>
@@ -295,13 +295,13 @@ const SalonVisitPage = () => {
             <Card className="border-0 shadow-lg sticky top-8">
               <CardHeader>
                 <CardTitle className="text-xl font-serif text-[#4e342e]">
-                  Selected Services
+                  {t('booking.selectedServices')}
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 {selectedServices.length === 0 ? (
                   <p className="text-[#6d4c41] text-center py-4">
-                    No services selected
+                    {t('booking.noServicesSelected')}
                   </p>
                 ) : (
                   <div className="space-y-4">
@@ -357,11 +357,11 @@ const SalonVisitPage = () => {
 
                     <div className="space-y-2">
                       <div className="flex justify-between text-sm">
-                        <span className="text-[#6d4c41]">Total Duration:</span>
+                        <span className="text-[#6d4c41]">{t('booking.totalDuration')}:</span>
                         <span className="font-medium text-[#4e342e]">{getTotalDuration()} min</span>
                       </div>
                       <div className="flex justify-between text-lg font-semibold">
-                        <span className="text-[#4e342e]">Total Price:</span>
+                        <span className="text-[#4e342e]">{t('booking.totalPrice')}:</span>
                         <span className="text-[#4e342e]">{getTotalPrice().toLocaleString()} CDF</span>
                       </div>
                     </div>
@@ -370,7 +370,7 @@ const SalonVisitPage = () => {
                       className="w-full bg-[#4e342e] hover:bg-[#3b2c26] text-white mt-4"
                       onClick={proceedToBooking}
                     >
-                      Proceed to Booking
+                      {t('booking.proceedToBooking')}
                       <ArrowRight className="w-4 h-4 ml-2" />
                     </Button>
                   </div>

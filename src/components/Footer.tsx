@@ -1,9 +1,9 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
-import { 
-  Phone, 
-  Mail, 
+import {
+  Phone,
+  Mail,
   MapPin
 } from 'lucide-react';
 
@@ -26,8 +26,8 @@ const Footer = () => {
                 className="h-10 w-10 rounded-full object-cover border-2 border-[#f8d7da] shadow-md"
               />
               <div>
-                <h3 className="text-xl font-serif font-bold text-white">HOME BONZENGA</h3>
-                <p className="text-[#f8d7da] text-sm font-sans">Premium Beauty Services</p>
+                <h3 className="text-xl font-serif font-bold text-white">{t('footer.brand.name')}</h3>
+                <p className="text-[#f8d7da] text-sm font-sans">{t('footer.brand.subtitle')}</p>
               </div>
             </div>
 
@@ -36,10 +36,10 @@ const Footer = () => {
               <Link to="/careers" className="block text-white/70 hover:text-[#f8d7da] transition-colors duration-300">{t('footer.company.careers')}</Link>
               <Link to="/contact" className="block text-white/70 hover:text-[#f8d7da] transition-colors duration-300">{t('footer.company.contact')}</Link>
             </div>
-            </div>
+          </div>
 
-            {/* Services */}
-            <div>
+          {/* Services */}
+          <div>
             <h4 className="text-lg font-serif font-semibold mb-6 text-white">{t('footer.services.title')}</h4>
             <div className="space-y-3 font-sans">
               <Link to="/at-home-services" className="block text-white/70 hover:text-[#f8d7da] transition-colors duration-300">{t('footer.services.atHome')}</Link>
@@ -77,7 +77,7 @@ const Footer = () => {
                 <span>Kinshasa, DR Congo</span>
               </div>
             </div>
-            
+
             <div className="flex space-x-4">
               <a href="mailto:info@homebonzenga.com" className="w-10 h-10 bg-white/10 rounded-full flex items-center justify-center hover:bg-[#f8d7da] hover:text-[#3b2c26] transition-all duration-300">
                 <Mail className="w-4 h-4" />

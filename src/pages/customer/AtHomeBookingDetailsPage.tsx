@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Loader2, ArrowLeft, Clock, MapPin, Phone, User, CheckCircle, Circle, Cross, XCircle } from 'lucide-react';
 import { toast } from 'sonner';
+import { useTranslation } from 'react-i18next';
 
 interface LiveUpdate {
     id: string;
@@ -39,17 +40,19 @@ interface BookingDetails {
     created_at: string;
 }
 
-const steps = [
-    { key: 'PAYMENT_SUCCESS', label: 'Payment Successful' },
-    { key: 'BEAUTICIAN_ASSIGNED', label: 'Beautician Assigned' },
-    { key: 'COMPLETED', label: 'Service Completed' }
-];
-
 const AtHomeBookingDetailsPage = () => {
+    const { t } = useTranslation();
     const { id } = useParams();
     const navigate = useNavigate();
     const [booking, setBooking] = useState<BookingDetails | null>(null);
     const [loading, setLoading] = useState(true);
+    const [completing, setCompleting] = useState(false);
+
+    const steps = [
+        { key: 'PAYMENT_SUCCESS', label: t('bookings.details.steps.paymentSuccess') },
+        { key: 'BEAUTICIAN_ASSIGNED', label: t('bookings.details.steps.beauticianAssigned') },
+        { key: 'COMPLETED', label: t('bookings.details.steps.serviceCompleted') }
+    ];
 
     useEffect(() => {
         if (id) fetchBookingDetails();
@@ -65,7 +68,7 @@ const AtHomeBookingDetailsPage = () => {
             }
         } catch (error) {
             console.error('Error fetching booking details:', error);
-            toast.error('Failed to load booking details');
+            toast.error(t('bookings.details.failedToLoadDetails'));
             navigate('/customer/bookings');
         } finally {
             setLoading(false);
@@ -110,40 +113,47 @@ const AtHomeBookingDetailsPage = () => {
 
     const handleDownloadInvoice = async () => {
         try {
-            toast.loading('Generating invoice...');
+            toast.loading(t('bookings.details.generatingInvoice'));
             const genRes = await api.post(`/invoices/generate/${id}`);
             const data = genRes.data as any;
             if (data.success) {
                 toast.dismiss();
-                toast.success('Invoice ready! Downloading...');
+                toast.success(t('bookings.details.invoiceReady'));
                 // Trigger download
                 window.open(`${import.meta.env.VITE_API_URL || 'http://localhost:3001/api'}/invoices/download/${id}`, '_blank');
             } else {
                 toast.dismiss();
-                toast.error(data.message || 'Failed to generate invoice');
+                toast.error(data.message || t('bookings.details.failedToGenerateInvoice'));
             }
         } catch (error) {
             console.error(error);
             toast.dismiss();
-            toast.error('Error downloading invoice');
+            toast.error(t('bookings.details.errorDownloadingInvoice'));
         }
     };
 
     const handleCompleteService = async () => {
-        if (!confirm('Are you sure you want to mark this service as completed? This will finalize the booking.')) return;
+        if (!confirm(t('bookings.details.confirmCompletion'))) return;
+        setCompleting(true);
         try {
-            toast.loading('Updating booking status...');
+            toast.loading(t('bookings.details.updatingStatus'));
             const response = await api.post(`/customer/athome-bookings/${id}/complete`);
             const data = response.data as any;
             if (data.success) {
                 toast.dismiss();
-                toast.success('Service marked as completed!');
+                toast.success(t('bookings.details.serviceMarkedCompleted'));
                 fetchBookingDetails(); // Refresh
+            } else {
+                toast.dismiss();
+                toast.error(data.message || t('bookings.details.failedToUpdateStatus'));
+                setCompleting(false);
             }
-        } catch (error) {
-            console.error(error);
+        } catch (error: any) {
+            console.error('Completion Error:', error);
             toast.dismiss();
-            toast.error('Failed to update status');
+            const errorMessage = error.response?.data?.message || t('bookings.details.failedToUpdateStatus');
+            toast.error(errorMessage);
+            setCompleting(false);
         }
     };
 
@@ -165,7 +175,7 @@ const AtHomeBookingDetailsPage = () => {
         <DashboardLayout>
             <div className="space-y-6 max-w-4xl mx-auto">
                 <Button variant="ghost" onClick={() => navigate('/customer/bookings')} className="pl-0 gap-2">
-                    <ArrowLeft className="w-4 h-4" /> Back to Bookings
+                    <ArrowLeft className="w-4 h-4" /> {t('bookings.details.backToBookings')}
                 </Button>
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -175,15 +185,15 @@ const AtHomeBookingDetailsPage = () => {
                             <CardHeader>
                                 <div className="flex justify-between items-start">
                                     <div>
-                                        <CardTitle className="text-xl text-[#4e342e]">Booking #{booking.id.slice(0, 8)}</CardTitle>
+                                        <CardTitle className="text-xl text-[#4e342e]">{t('bookings.details.bookingId')}{booking.id.slice(0, 8)}</CardTitle>
                                         <CardDescription>
-                                            Booked on {new Date(booking.created_at).toLocaleDateString()}
+                                            {t('bookings.details.bookedOn')} {new Date(booking.created_at).toLocaleDateString()}
                                         </CardDescription>
                                     </div>
                                     <div className="flex items-center gap-2">
                                         <Badge className="bg-[#4e342e]">{booking.status}</Badge>
                                         <Button size="sm" variant="outline" className="h-6 text-xs" onClick={handleDownloadInvoice}>
-                                            Download Invoice
+                                            {t('bookings.details.downloadInvoice')}
                                         </Button>
                                     </div>
                                 </div>
@@ -192,7 +202,7 @@ const AtHomeBookingDetailsPage = () => {
                                 {/* Beautician Info */}
                                 <div>
                                     <h3 className="font-medium text-gray-900 mb-3 flex items-center gap-2">
-                                        <User className="w-4 h-4" /> Assigned Beautician
+                                        <User className="w-4 h-4" /> {t('bookings.details.assignedBeautician')}
                                     </h3>
                                     {booking.beautician ? (
                                         <div className="flex items-center gap-4 bg-green-50 p-4 rounded-lg border border-green-100">
@@ -208,7 +218,7 @@ const AtHomeBookingDetailsPage = () => {
                                         </div>
                                     ) : (
                                         <div className="bg-yellow-50 p-4 rounded-lg border border-yellow-100 text-yellow-800 text-sm">
-                                            A beautician will be assigned shortly by the manager.
+                                            {t('bookings.details.beauticianAssignedDesc')}
                                         </div>
                                     )}
                                 </div>
@@ -218,7 +228,7 @@ const AtHomeBookingDetailsPage = () => {
                                 {/* Time & Location */}
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                     <div>
-                                        <h4 className="text-sm font-medium text-gray-500 mb-1">Scheduled Time</h4>
+                                        <h4 className="text-sm font-medium text-gray-500 mb-1">{t('bookings.details.scheduledTime')}</h4>
                                         <div className="flex items-center gap-2 text-gray-900">
                                             <Clock className="w-4 h-4 text-[#4e342e]" />
                                             <span>
@@ -227,7 +237,7 @@ const AtHomeBookingDetailsPage = () => {
                                         </div>
                                     </div>
                                     <div>
-                                        <h4 className="text-sm font-medium text-gray-500 mb-1">Location</h4>
+                                        <h4 className="text-sm font-medium text-gray-500 mb-1">{t('bookings.details.location')}</h4>
                                         <div className="flex items-start gap-2 text-gray-900">
                                             <MapPin className="w-4 h-4 text-[#4e342e] mt-1" />
                                             <span className="text-sm">
@@ -241,7 +251,7 @@ const AtHomeBookingDetailsPage = () => {
 
                                 {/* Services & Products */}
                                 <div>
-                                    <h4 className="text-sm font-medium text-gray-500 mb-3">Order Summary</h4>
+                                    <h4 className="text-sm font-medium text-gray-500 mb-3">{t('bookings.details.orderSummary')}</h4>
                                     <div className="space-y-3">
                                         {booking.services.map((s, i) => (
                                             <div key={`s-${i}`} className="flex justify-between items-center text-sm">
@@ -269,12 +279,13 @@ const AtHomeBookingDetailsPage = () => {
                                         <Button
                                             className="w-full bg-green-600 hover:bg-green-700 text-white"
                                             onClick={handleCompleteService}
+                                            disabled={completing}
                                         >
                                             <CheckCircle className="w-4 h-4 mr-2" />
-                                            Mark Service Completed
+                                            {t('bookings.details.markServiceCompleted')}
                                         </Button>
                                         <p className="text-xs text-center text-gray-500 mt-2">
-                                            Please click this ONLY after the beautician has finished the service.
+                                            {t('bookings.details.completionWarning')}
                                         </p>
                                     </div>
                                 )}
@@ -286,7 +297,7 @@ const AtHomeBookingDetailsPage = () => {
                     <div>
                         <Card className="border-0 shadow-md h-full">
                             <CardHeader>
-                                <CardTitle className="text-lg text-[#4e342e]">Live Tracking</CardTitle>
+                                <CardTitle className="text-lg text-[#4e342e]">{t('bookings.details.liveTracking')}</CardTitle>
                             </CardHeader>
                             <CardContent>
                                 <div className="relative pl-4 border-l-2 border-gray-100 space-y-8 py-2">
@@ -308,7 +319,7 @@ const AtHomeBookingDetailsPage = () => {
                                                     {time && <div className="text-xs text-gray-500 font-mono mt-1">{time}</div>}
                                                     {current && booking.beautician && step.key === 'BEAUTICIAN_ASSIGNED' && (
                                                         <div className="text-xs text-blue-600 mt-1">
-                                                            Beautician assigned
+                                                            {t('bookings.details.steps.beauticianAssignedSmall')}
                                                         </div>
                                                     )}
                                                 </div>

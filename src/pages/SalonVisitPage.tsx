@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { motion } from 'framer-motion';
@@ -49,6 +50,7 @@ interface Vendor {
 }
 
 const SalonVisitPage = () => {
+  const { t } = useTranslation();
   const { user } = useSupabaseAuth();
   const navigate = useNavigate();
   const [vendors, setVendors] = useState<Vendor[]>([]);
@@ -183,7 +185,7 @@ const SalonVisitPage = () => {
         <div className="pt-20 min-h-screen flex items-center justify-center">
           <div className="text-center">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#4e342e] mx-auto mb-4"></div>
-            <p className="text-[#6d4c41]">Loading salons...</p>
+            <p className="text-[#6d4c41]">{t('common.loading')}...</p>
           </div>
         </div>
       </div>
@@ -209,7 +211,7 @@ const SalonVisitPage = () => {
                 variants={fadeInUp}
               >
                 <Building className="w-4 h-4 mr-2" />
-                Premium Salon Experience
+                {t('salon.title')}
               </motion.div>
 
               <motion.h1
@@ -217,14 +219,14 @@ const SalonVisitPage = () => {
                 variants={fadeInUp}
               >
                 Visit Our
-                <span className="block text-[#6d4c41]">Partner Salons</span>
+                <span className="block text-[#6d4c41]">{t('salon.findSalon')}</span>
               </motion.h1>
 
               <motion.p
                 className="text-lg text-[#6d4c41] leading-relaxed max-w-lg font-sans mb-8"
                 variants={fadeInUp}
               >
-                Discover our network of verified partner salons offering premium beauty services in a professional environment.
+                {t('salon.subtitle')}
               </motion.p>
 
               {!user && (
@@ -238,7 +240,7 @@ const SalonVisitPage = () => {
                       className="border-2 border-[#4e342e] text-[#4e342e] hover:bg-[#4e342e] hover:text-white px-8 py-4 text-lg font-semibold rounded-xl transition-all duration-300"
                     >
                       <UserCheck className="w-5 h-5 mr-2" />
-                      Sign Up
+                      {t('auth.signUp')}
                     </Button>
                   </Link>
                 </motion.div>
@@ -294,7 +296,7 @@ const SalonVisitPage = () => {
             transition={{ duration: 0.6 }}
           >
             <h2 className="text-3xl sm:text-4xl font-serif font-bold text-[#4e342e] mb-6">
-              Why Choose Our Partner Salons?
+              {t('salon.viewDetails')}
             </h2>
             <p className="text-lg text-[#6d4c41] max-w-2xl mx-auto">
               We partner with the finest salons to bring you exceptional beauty services in a professional environment.
@@ -356,7 +358,7 @@ const SalonVisitPage = () => {
             transition={{ duration: 0.6 }}
           >
             <h2 className="text-3xl sm:text-4xl font-serif font-bold text-[#4e342e] mb-6">
-              Our Partner Salons
+              {t('salon.findSalon')}
             </h2>
             <p className="text-lg text-[#6d4c41] max-w-2xl mx-auto mb-10">
               Discover our network of premium salons offering exceptional beauty services.
@@ -372,7 +374,7 @@ const SalonVisitPage = () => {
                   <Search className={`w-4 h-4 mr-3 ${isSearching ? 'text-[#4e342e] animate-pulse' : 'text-[#6d4c41]/50'}`} />
                   <input
                     type="text"
-                    placeholder="Search by salon name, city, or keyword..."
+                    placeholder={t('search.searchPlaceholder')}
                     className="w-full py-3.5 bg-transparent outline-none text-[#4e342e] placeholder:text-[#6d4c41]/40 font-sans text-sm"
                     value={searchInputValue}
                     onChange={(e) => setSearchInputValue(e.target.value)}
@@ -388,7 +390,7 @@ const SalonVisitPage = () => {
                     {isSearching ? (
                       <div className="w-4 h-4 rounded-full border-2 border-t-white border-white/20 animate-spin" />
                     ) : (
-                      'Search'
+                      t('common.search')
                     )}
                   </Button>
                 </div>
@@ -405,7 +407,7 @@ const SalonVisitPage = () => {
           {vendors.length === 0 && !loading && (
             <div className="text-center py-16">
               <Building className="w-16 h-16 text-[#6d4c41] mx-auto mb-4 opacity-10" />
-              <p className="text-xl text-[#4e342e] font-semibold mb-2">No salons found</p>
+              <p className="text-xl text-[#4e342e] font-semibold mb-2">{t('salon.findSalon')}</p>
               <p className="text-[#6d4c41]">Try searching for a different keyword or city.</p>
               {searchInputValue.trim() !== '' && (
                 <Button
@@ -479,7 +481,7 @@ const SalonVisitPage = () => {
                         className="w-full h-12 bg-[#4e342e] hover:bg-[#3b2c26] text-white text-sm font-semibold tracking-wide uppercase rounded-xl shadow-lg hover:shadow-xl hover:shadow-[#4e342e]/20 transition-all duration-300 group-hover:-translate-y-0.5"
                         onClick={() => handleBookAppointment(salon.id)}
                       >
-                        Book Appointment
+                        {t('salon.bookNow')}
                         <ArrowRight className="w-4 h-4 ml-2" />
                       </Button>
                     </div>

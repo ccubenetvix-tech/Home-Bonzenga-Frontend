@@ -77,7 +77,7 @@ const CustomerBookingsPage = () => {
     if (booking.bookingType === 'AT_HOME') {
       navigate(`/customer/athome-bookings/${booking.id}`);
     } else {
-      toast.info("Salon booking details are currently unavailable.");
+      toast.info(t('bookings.salonBookingUnavailable'));
     }
   };
 
@@ -378,14 +378,14 @@ const CustomerBookingsPage = () => {
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div>
                 <h1 className="text-2xl sm:text-3xl font-serif font-bold text-[#4e342e]">
-                  My Bookings
+                  {t('bookings.title')}
                 </h1>
                 <p className="text-base sm:text-lg text-[#6d4c41] mt-1 sm:mt-2">
-                  View and manage all your beauty service appointments
+                  {t('bookings.subtitle')}
                 </p>
               </div>
               <div className="text-left sm:text-right">
-                <p className="text-xs sm:text-sm text-[#6d4c41]">Total Bookings</p>
+                <p className="text-xs sm:text-sm text-[#6d4c41]">{t('bookings.totalBookings')}</p>
                 <p className="text-xl sm:text-2xl font-bold text-[#4e342e]">{bookings.length}</p>
               </div>
             </div>
@@ -398,7 +398,7 @@ const CustomerBookingsPage = () => {
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-[#6d4c41] w-4 h-4" />
                   <Input
-                    placeholder="Search bookings..."
+                    placeholder={t('bookings.searchPlaceholder')}
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     className="pl-10 border-[#4e342e]/20 focus:border-[#4e342e] text-sm sm:text-base"
@@ -406,25 +406,25 @@ const CustomerBookingsPage = () => {
                 </div>
                 <Select value={statusFilter} onValueChange={setStatusFilter}>
                   <SelectTrigger className="border-[#4e342e]/20 focus:border-[#4e342e]">
-                    <SelectValue placeholder="Filter by status" />
+                    <SelectValue placeholder={t('bookings.filterByStatus')} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">All Statuses</SelectItem>
-                    <SelectItem value="pending">Pending</SelectItem>
-                    <SelectItem value="confirmed">Confirmed</SelectItem>
-                    <SelectItem value="completed">Completed</SelectItem>
-                    <SelectItem value="cancelled">Cancelled</SelectItem>
+                    <SelectItem value="all">{t('bookings.allStatuses')}</SelectItem>
+                    <SelectItem value="pending">{t('bookings.pending')}</SelectItem>
+                    <SelectItem value="confirmed">{t('bookings.confirmed')}</SelectItem>
+                    <SelectItem value="completed">{t('bookings.completed')}</SelectItem>
+                    <SelectItem value="cancelled">{t('bookings.cancelled')}</SelectItem>
                   </SelectContent>
                 </Select>
                 <Select value={paymentFilter} onValueChange={setPaymentFilter}>
                   <SelectTrigger className="border-[#4e342e]/20 focus:border-[#4e342e]">
-                    <SelectValue placeholder="Filter by payment" />
+                    <SelectValue placeholder={t('bookings.filterByPayment')} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">All Payments</SelectItem>
-                    <SelectItem value="paid">Paid</SelectItem>
-                    <SelectItem value="unpaid">Unpaid</SelectItem>
-                    <SelectItem value="refunded">Refunded</SelectItem>
+                    <SelectItem value="all">{t('bookings.allPayments')}</SelectItem>
+                    <SelectItem value="paid">{t('bookings.paid')}</SelectItem>
+                    <SelectItem value="unpaid">{t('bookings.unpaid')}</SelectItem>
+                    <SelectItem value="refunded">{t('bookings.refunded')}</SelectItem>
                   </SelectContent>
                 </Select>
                 <Button
@@ -437,7 +437,7 @@ const CustomerBookingsPage = () => {
                   className="border-[#4e342e] text-[#4e342e] hover:bg-[#4e342e] hover:text-white"
                 >
                   <Filter className="w-4 h-4 mr-2" />
-                  Clear Filters
+                  {t('bookings.clearFilters')}
                 </Button>
               </div>
             </CardContent>
@@ -449,7 +449,7 @@ const CustomerBookingsPage = () => {
               <CardHeader className="pb-3">
                 <CardTitle className="text-lg sm:text-xl font-serif font-bold text-[#4e342e] flex items-center">
                   <Calendar className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
-                  Booking History ({filteredBookings.length})
+                  {t('bookings.bookingHistory')} ({filteredBookings.length})
                 </CardTitle>
               </CardHeader>
               <CardContent className="pt-0">
@@ -457,15 +457,15 @@ const CustomerBookingsPage = () => {
                   <Table>
                     <TableHeader>
                       <TableRow className="border-[#4e342e]/10">
-                        <TableHead className="text-[#4e342e] font-semibold text-xs sm:text-sm">Booking ID</TableHead>
-                        <TableHead className="text-[#4e342e] font-semibold text-xs sm:text-sm">Service</TableHead>
-                        <TableHead className="text-[#4e342e] font-semibold text-xs sm:text-sm">Type</TableHead>
-                        <TableHead className="text-[#4e342e] font-semibold text-xs sm:text-sm">Beautician</TableHead>
-                        <TableHead className="text-[#4e342e] font-semibold text-xs sm:text-sm">Date & Time</TableHead>
-                        <TableHead className="text-[#4e342e] font-semibold text-xs sm:text-sm">Status</TableHead>
-                        <TableHead className="text-[#4e342e] font-semibold text-xs sm:text-sm">Payment</TableHead>
-                        <TableHead className="text-[#4e342e] font-semibold text-xs sm:text-sm">Total</TableHead>
-                        <TableHead className="text-[#4e342e] font-semibold text-xs sm:text-sm">Actions</TableHead>
+                        <TableHead className="text-[#4e342e] font-semibold text-xs sm:text-sm">{t('bookings.bookingId')}</TableHead>
+                        <TableHead className="text-[#4e342e] font-semibold text-xs sm:text-sm">{t('bookings.service')}</TableHead>
+                        <TableHead className="text-[#4e342e] font-semibold text-xs sm:text-sm">{t('bookings.type')}</TableHead>
+                        <TableHead className="text-[#4e342e] font-semibold text-xs sm:text-sm">{t('bookings.beautician')}</TableHead>
+                        <TableHead className="text-[#4e342e] font-semibold text-xs sm:text-sm">{t('bookings.dateTime')}</TableHead>
+                        <TableHead className="text-[#4e342e] font-semibold text-xs sm:text-sm">{t('bookings.status')}</TableHead>
+                        <TableHead className="text-[#4e342e] font-semibold text-xs sm:text-sm">{t('bookings.payment')}</TableHead>
+                        <TableHead className="text-[#4e342e] font-semibold text-xs sm:text-sm">{t('bookings.total')}</TableHead>
+                        <TableHead className="text-[#4e342e] font-semibold text-xs sm:text-sm">{t('bookings.actions')}</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -483,14 +483,14 @@ const CustomerBookingsPage = () => {
                                   {booking.serviceType}
                                 </p>
                                 <p className="text-xs text-[#6d4c41]">
-                                  {booking.services.length} service{booking.services.length > 1 ? 's' : ''}
+                                  {booking.services.length} {t('bookings.services')}
                                 </p>
                               </div>
                             </div>
                           </TableCell>
                           <TableCell>
                             <Badge variant="outline" className={booking.bookingType === 'AT_HOME' ? 'border-blue-500 text-blue-700' : 'border-[#6d4c41] text-[#6d4c41]'}>
-                              {booking.bookingType === 'AT_HOME' ? 'At Home' : 'Salon'}
+                              {booking.bookingType === 'AT_HOME' ? t('bookings.atHome') : t('bookings.salon')}
                             </Badge>
                             <div className="text-xs text-[#6d4c41] mt-1 max-w-[150px] truncate" title={booking.serviceAddress}>
                               <MapPin className="w-3 h-3 inline mr-1" />
@@ -511,7 +511,7 @@ const CustomerBookingsPage = () => {
                                 </div>
                               </div>
                             ) : (
-                              <span className="text-[#6d4c41] text-xs sm:text-sm">Not assigned</span>
+                              <span className="text-[#6d4c41] text-xs sm:text-sm">{t('bookings.notAssigned')}</span>
                             )}
                           </TableCell>
                           <TableCell>
@@ -549,7 +549,7 @@ const CustomerBookingsPage = () => {
                               onClick={() => handleViewBooking(booking)}
                             >
                               <Eye className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
-                              <span className="hidden sm:inline">View</span>
+                              <span className="hidden sm:inline">{t('bookings.view')}</span>
                             </Button>
                           </TableCell>
                         </TableRow>
@@ -564,16 +564,16 @@ const CustomerBookingsPage = () => {
               <CardContent className="p-12 text-center">
                 <Calendar className="w-16 h-16 text-[#6d4c41] mx-auto mb-4" />
                 <h3 className="text-xl font-semibold text-[#4e342e] mb-2">
-                  No bookings found
+                  {t('bookings.noBookingsFound')}
                 </h3>
                 <p className="text-[#6d4c41] mb-6">
                   {searchTerm || statusFilter !== 'all' || paymentFilter !== 'all'
-                    ? 'No bookings match your current filters. Try adjusting your search criteria.'
-                    : 'You haven\'t made any bookings yet. Start by booking a beauty service!'
+                    ? t('bookings.noMatchingBookings')
+                    : t('bookings.noBookingsYet')
                   }
                 </p>
                 <Button className="bg-[#4e342e] hover:bg-[#3b2c26] text-white">
-                  Book a Service
+                  {t('bookings.bookService')}
                 </Button>
               </CardContent>
             </Card>

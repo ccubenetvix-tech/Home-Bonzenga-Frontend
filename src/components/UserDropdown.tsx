@@ -78,14 +78,14 @@ const UserDropdown: React.FC<UserDropdownProps> = ({ userName }) => {
                 className="flex items-center w-full px-4 py-3 text-sm text-[#4e342e] hover:bg-[#f8d7da]/20 transition-colors font-medium font-sans"
               >
                 <Calendar className="w-4 h-4 mr-3" />
-                Appointments
+                {t('navigation.appointments')}
               </button>
               <button
                 onClick={handleManageAccount}
                 className="flex items-center w-full px-4 py-3 text-sm text-[#4e342e] hover:bg-[#f8d7da]/20 transition-colors font-medium font-sans"
               >
                 <User className="w-4 h-4 mr-3" />
-                Manage Account
+                {t('navigation.manageAccount')}
               </button>
             </>
           )}
@@ -114,7 +114,7 @@ const UserDropdown: React.FC<UserDropdownProps> = ({ userName }) => {
             className="flex items-center w-full px-4 py-3 text-sm text-[#4e342e] hover:bg-[#f8d7da]/20 transition-colors font-medium font-sans"
           >
             <LogOut className="w-4 h-4 mr-3" />
-            Logout
+            {t('navigation.logout')}
           </button>
         </div>
       )}

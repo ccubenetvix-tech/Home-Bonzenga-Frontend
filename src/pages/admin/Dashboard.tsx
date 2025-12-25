@@ -354,7 +354,7 @@ const AdminDashboard = () => {
         <div className="min-h-screen bg-background flex items-center justify-center">
           <div className="text-center">
             <Loader2 className="w-8 h-8 animate-spin text-primary mx-auto mb-4" />
-            <p className="text-muted-foreground">Loading admin dashboard...</p>
+            <p className="text-muted-foreground">{t('common.loading')}...</p>
           </div>
         </div>
       </DashboardLayout>
@@ -368,8 +368,8 @@ const AdminDashboard = () => {
         <div className="mb-8">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-3xl font-serif font-bold text-[#4e342e] mb-2">Admin Dashboard</h1>
-              <p className="text-[#6d4c41]">Welcome back, {user?.firstName}! Here's your platform overview.</p>
+              <h1 className="text-3xl font-serif font-bold text-[#4e342e] mb-2">{t('admin.dashboard.title')}</h1>
+              <p className="text-[#6d4c41]">{t('admin.dashboard.welcome', { name: user?.firstName })}</p>
             </div>
             <div className="flex items-center space-x-4">
               <Button
@@ -379,7 +379,7 @@ const AdminDashboard = () => {
                 disabled={loading}
               >
                 <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
-                Refresh
+                {t('admin.dashboard.refresh')}
               </Button>
             </div>
           </div>
@@ -388,27 +388,27 @@ const AdminDashboard = () => {
         {/* Financial Overview (Invoiced) */}
         {financeStats && (
           <div className="mb-8">
-            <h2 className="text-xl font-serif font-bold text-[#4e342e] mb-4">Financial Overview (Audited)</h2>
+            <h2 className="text-xl font-serif font-bold text-[#4e342e] mb-4">{t('admin.financial.title')}</h2>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <Card className="border-0 bg-white shadow-lg rounded-lg border-l-4 border-l-green-600">
                 <CardContent className="p-6">
-                  <p className="text-sm font-medium text-gray-500">Total Invoiced Revenue</p>
+                  <p className="text-sm font-medium text-gray-500">{t('admin.financial.total_invoiced')}</p>
                   <p className="text-2xl font-bold text-[#4e342e]">{financeStats.totalRevenue?.toLocaleString()} CDF</p>
-                  <p className="text-xs text-gray-400 mt-1">From generated invoices</p>
+                  <p className="text-xs text-gray-400 mt-1">{t('admin.financial.from_invoices')}</p>
                 </CardContent>
               </Card>
               <Card className="border-0 bg-white shadow-lg rounded-lg border-l-4 border-l-blue-600">
                 <CardContent className="p-6">
-                  <p className="text-sm font-medium text-gray-500">Platform Commission</p>
+                  <p className="text-sm font-medium text-gray-500">{t('admin.financial.commission')}</p>
                   <p className="text-2xl font-bold text-blue-700">{financeStats.totalCommission?.toLocaleString()} CDF</p>
-                  <p className="text-xs text-gray-400 mt-1">Net Earnings</p>
+                  <p className="text-xs text-gray-400 mt-1">{t('admin.financial.net_earnings')}</p>
                 </CardContent>
               </Card>
               <Card className="border-0 bg-white shadow-lg rounded-lg border-l-4 border-l-orange-600">
                 <CardContent className="p-6">
-                  <p className="text-sm font-medium text-gray-500">Beautician Payouts</p>
+                  <p className="text-sm font-medium text-gray-500">{t('admin.financial.payouts')}</p>
                   <p className="text-2xl font-bold text-orange-700">{financeStats.totalPayouts?.toLocaleString()} CDF</p>
-                  <p className="text-xs text-gray-400 mt-1">Payable Amount</p>
+                  <p className="text-xs text-gray-400 mt-1">{t('admin.financial.payable')}</p>
                 </CardContent>
               </Card>
             </div>
@@ -423,11 +423,11 @@ const AdminDashboard = () => {
               <CardContent className="p-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium text-[#6d4c41]">Total Users</p>
+                    <p className="text-sm font-medium text-[#6d4c41]">{t('admin.stats.total_users')}</p>
                     <p className="text-2xl font-bold text-[#4e342e]">{stats.totalUsers.toLocaleString()}</p>
                     <div className="flex items-center mt-2">
                       <Badge className="bg-[#f8d7da]/30 text-[#4e342e] text-xs">
-                        {stats.activeUsers} Active
+                        {t('admin.stats.active', { count: stats.activeUsers })}
                       </Badge>
                     </div>
                   </div>
@@ -443,11 +443,11 @@ const AdminDashboard = () => {
               <CardContent className="p-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium text-[#6d4c41]">Total Vendors</p>
+                    <p className="text-sm font-medium text-[#6d4c41]">{t('admin.stats.total_vendors')}</p>
                     <p className="text-2xl font-bold text-[#4e342e]">{stats.totalVendors.toLocaleString()}</p>
                     <div className="flex items-center mt-2">
                       <Badge className="bg-[#6d4c41]/20 text-[#6d4c41] text-xs">
-                        {stats.pendingVendors} Pending
+                        {t('admin.stats.pending', { count: stats.pendingVendors })}
                       </Badge>
                     </div>
                   </div>
@@ -463,11 +463,11 @@ const AdminDashboard = () => {
               <CardContent className="p-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium text-[#6d4c41]">Pending Approvals</p>
+                    <p className="text-sm font-medium text-[#6d4c41]">{t('admin.stats.pending_approvals')}</p>
                     <p className="text-2xl font-bold text-[#4e342e]">{stats.pendingApprovals}</p>
                     <div className="flex items-center mt-2">
                       <Badge className="bg-[#6d4c41]/20 text-[#6d4c41] text-xs">
-                        Requires Action
+                        {t('admin.stats.requires_action')}
                       </Badge>
                     </div>
                   </div>
@@ -483,11 +483,11 @@ const AdminDashboard = () => {
               <CardContent className="p-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium text-[#6d4c41]">At Home Bookings</p>
+                    <p className="text-sm font-medium text-[#6d4c41]">{t('admin.stats.at_home_bookings')}</p>
                     <p className="text-2xl font-bold text-[#4e342e]">{stats.atHomeBookings.toLocaleString()}</p>
                     <div className="flex items-center mt-2">
                       <Home className="w-4 h-4 text-[#6d4c41] mr-1" />
-                      <span className="text-sm text-[#6d4c41]">Lifetime Total</span>
+                      <span className="text-sm text-[#6d4c41]">{t('admin.stats.lifetime_total')}</span>
                     </div>
                   </div>
                   <div className="w-12 h-12 bg-gradient-to-br from-[#4e342e] to-[#6d4c41] rounded-lg flex items-center justify-center">
@@ -502,11 +502,11 @@ const AdminDashboard = () => {
               <CardContent className="p-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium text-[#6d4c41]">At Salon Bookings</p>
+                    <p className="text-sm font-medium text-[#6d4c41]">{t('admin.stats.salon_bookings')}</p>
                     <p className="text-2xl font-bold text-[#4e342e]">{stats.salonBookings.toLocaleString()}</p>
                     <div className="flex items-center mt-2">
                       <Scissors className="w-4 h-4 text-[#6d4c41] mr-1" />
-                      <span className="text-sm text-[#6d4c41]">Lifetime Total</span>
+                      <span className="text-sm text-[#6d4c41]">{t('admin.stats.lifetime_total')}</span>
                     </div>
                   </div>
                   <div className="w-12 h-12 bg-gradient-to-br from-[#4e342e] to-[#6d4c41] rounded-lg flex items-center justify-center">
@@ -521,11 +521,11 @@ const AdminDashboard = () => {
               <CardContent className="p-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium text-[#6d4c41]">Pending Payouts</p>
+                    <p className="text-sm font-medium text-[#6d4c41]">{t('admin.stats.pending_payouts')}</p>
                     <p className="text-2xl font-bold text-[#4e342e]">${stats.pendingPayouts.toLocaleString()}</p>
                     <div className="flex items-center mt-2">
                       <Badge className="bg-[#6d4c41]/20 text-[#6d4c41] text-xs">
-                        Awaiting Approval
+                        {t('admin.stats.awaiting_approval')}
                       </Badge>
                     </div>
                   </div>
@@ -541,10 +541,10 @@ const AdminDashboard = () => {
               <CardContent className="p-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium text-[#6d4c41]">Bookings Monitor</p>
-                    <p className="text-2xl font-bold text-[#4e342e]">At-Home Live</p>
+                    <p className="text-sm font-medium text-[#6d4c41]">{t('admin.stats.bookings_monitor')}</p>
+                    <p className="text-2xl font-bold text-[#4e342e]">{t('admin.stats.at_home_live')}</p>
                     <div className="flex items-center mt-2 text-primary font-medium text-xs">
-                      View details <ArrowRight className="w-3 h-3 ml-1" />
+                      {t('admin.stats.view_details')} <ArrowRight className="w-3 h-3 ml-1" />
                     </div>
                   </div>
                   <div className="w-12 h-12 bg-gradient-to-br from-[#4e342e] to-[#6d4c41] rounded-lg flex items-center justify-center">
@@ -559,10 +559,10 @@ const AdminDashboard = () => {
               <CardContent className="p-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium text-[#6d4c41]">Salon Services Monitor</p>
-                    <p className="text-2xl font-bold text-[#4e342e]">Salon Live</p>
+                    <p className="text-sm font-medium text-[#6d4c41]">{t('admin.stats.salon_monitor')}</p>
+                    <p className="text-2xl font-bold text-[#4e342e]">{t('admin.stats.salon_live')}</p>
                     <div className="flex items-center mt-2 text-primary font-medium text-xs">
-                      View details <ArrowRight className="w-3 h-3 ml-1" />
+                      {t('admin.stats.view_details')} <ArrowRight className="w-3 h-3 ml-1" />
                     </div>
                   </div>
                   <div className="w-12 h-12 bg-gradient-to-br from-[#4e342e] to-[#6d4c41] rounded-lg flex items-center justify-center">
@@ -578,11 +578,11 @@ const AdminDashboard = () => {
         {pendingVendors.length > 0 && (
           <div className="mb-8">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-2xl font-serif font-bold text-[#4e342e]">Pending Vendor Approvals</h2>
+              <h2 className="text-2xl font-serif font-bold text-[#4e342e]">{t('admin.pending_vendors.title')}</h2>
               <Link to="/admin/vendors?status=PENDING">
                 <Button variant="outline" className="border-[#4e342e] text-[#4e342e] hover:bg-[#4e342e] hover:text-white">
                   <Eye className="w-4 h-4 mr-2" />
-                  View All
+                  {t('admin.pending_vendors.view_all')}
                 </Button>
               </Link>
             </div>
@@ -621,7 +621,7 @@ const AdminDashboard = () => {
                             ) : (
                               <>
                                 <CheckCircle className="w-4 h-4 mr-1" />
-                                Approve
+                                {t('admin.pending_vendors.approve')}
                               </>
                             )}
                           </Button>
@@ -637,7 +637,7 @@ const AdminDashboard = () => {
                             ) : (
                               <>
                                 <AlertCircle className="w-4 h-4 mr-1" />
-                                Reject
+                                {t('admin.pending_vendors.reject')}
                               </>
                             )}
                           </Button>
@@ -653,7 +653,7 @@ const AdminDashboard = () => {
 
         {/* At-Home Catalog Management Section */}
         <div className="mb-12">
-          <h2 className="text-2xl font-serif font-bold text-[#4e342e] mb-6">At-Home Catalog Management</h2>
+          <h2 className="text-2xl font-serif font-bold text-[#4e342e] mb-6">{t('admin.catalog.title')}</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             <Card className="border-0 shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden group">
               <div className="p-1 bg-gradient-to-r from-[#4e342e] to-[#6d4c41]"></div>
@@ -662,15 +662,15 @@ const AdminDashboard = () => {
                   <div className="w-16 h-16 bg-[#4e342e]/10 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
                     <Scissors className="w-8 h-8 text-[#4e342e]" />
                   </div>
-                  <Badge className="bg-green-100 text-green-800">New Flow</Badge>
+                  <Badge className="bg-green-100 text-green-800">{t('admin.catalog.new_flow')}</Badge>
                 </div>
-                <h3 className="text-2xl font-serif font-bold text-[#4e342e] mb-3">Service Master Catalog</h3>
+                <h3 className="text-2xl font-serif font-bold text-[#4e342e] mb-3">{t('admin.catalog.services.title')}</h3>
                 <p className="text-[#6d4c41] mb-6">
-                  Manage the official list of at-home services. View vendor references, set platform prices, and standardize descriptions.
+                  {t('admin.catalog.services.description')}
                 </p>
                 <Link to="/admin/at-home-services" className="w-full block">
                   <Button className="w-full bg-[#4e342e] hover:bg-[#3b2c26] text-white py-6 rounded-xl font-bold group">
-                    Manage Master Services
+                    {t('admin.catalog.services.manage')}
                     <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
                   </Button>
                 </Link>
@@ -684,15 +684,15 @@ const AdminDashboard = () => {
                   <div className="w-16 h-16 bg-[#4e342e]/10 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
                     <Package className="w-8 h-8 text-[#4e342e]" />
                   </div>
-                  <Badge className="bg-green-100 text-green-800">New Flow</Badge>
+                  <Badge className="bg-green-100 text-green-800">{t('admin.catalog.new_flow')}</Badge>
                 </div>
-                <h3 className="text-2xl font-serif font-bold text-[#4e342e] mb-3">Product Master Catalog</h3>
+                <h3 className="text-2xl font-serif font-bold text-[#4e342e] mb-3">{t('admin.catalog.products.title')}</h3>
                 <p className="text-[#6d4c41] mb-6">
-                  Curate products that beauticians use or sell during at-home visits. Standardize pricing and categories.
+                  {t('admin.catalog.products.description')}
                 </p>
                 <Link to="/admin/at-home-products" className="w-full block">
                   <Button className="w-full bg-white border-2 border-[#4e342e] text-[#4e342e] hover:bg-[#4e342e] hover:text-white py-6 rounded-xl font-bold group">
-                    Manage Master Products
+                    {t('admin.catalog.products.manage')}
                     <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
                   </Button>
                 </Link>

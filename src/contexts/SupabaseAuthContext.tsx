@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { supabaseAuth, User, RegisterData, mapSupabaseAuthError, delay } from "@/lib/supabaseAuth";
 import { api } from "@/lib/api";
 import { supabase } from "@/lib/supabase";
-import { sendVerificationEmail } from "@/lib/emailjs";
+// import { sendVerificationEmail } from "@/lib/emailjs";
 import { mockAuth } from "@/lib/mockAuth";
 import { supabaseConfig } from "@/config/supabase";
 import { getApiUrl } from "@/config/env";
@@ -632,29 +632,9 @@ export const SupabaseAuthProvider = ({ children }: { children: React.ReactNode }
           console.warn('Failed to update status manually, but continuing:', statusError);
         }
 
-        // 3. CUSTOM FLOW: Generate link via backend and send via EmailJS
+        // 3. CUSTOM FLOW DISABLED: Supabase Auth handles verification email automatically
         if (result.data.user && !result.data.session) {
-          try {
-            const { data: linkData } = await api.post<{ success: boolean; verificationLink: string }>('/auth/generate-verification-link', {
-              email: userData.email,
-              role: 'CUSTOMER'
-            });
-
-            if (linkData?.success && linkData.verificationLink) {
-              await sendVerificationEmail({
-                to_email: userData.email,
-                user_name: `${userData.firstName} ${userData.lastName}`,
-                verification_link: linkData.verificationLink,
-                role: 'CUSTOMER'
-              });
-              toast.success("Verification email sent. Please check your inbox.");
-            } else {
-              toast.error("Account created but failed to send verification email. Please contact support.");
-            }
-          } catch (linkErr) {
-            console.error('Failed to generate/send verification link:', linkErr);
-            toast.error("Account created but failed to send verification email. Please contact support.");
-          }
+          toast.success("Registration successful! Please check your inbox to confirm your account.");
           navigate('/login');
         } else if (result.data.session) {
           setUser(result.data.user as any);
@@ -956,28 +936,8 @@ export const SupabaseAuthProvider = ({ children }: { children: React.ReactNode }
         await supabase.auth.signOut();
       }
 
-      // CUSTOM FLOW: Generate link via backend and send via EmailJS for VENDOR
-      try {
-        const { data: linkData } = await api.post<{ success: boolean; verificationLink: string }>('/auth/generate-verification-link', {
-          email: trimmedEmail,
-          role: 'VENDOR'
-        });
-
-        if (linkData?.success && linkData.verificationLink) {
-          await sendVerificationEmail({
-            to_email: trimmedEmail,
-            user_name: `${firstName} ${lastName}`,
-            verification_link: linkData.verificationLink,
-            role: 'VENDOR'
-          });
-          toast.success('Verification email sent. Please check your inbox.');
-        } else {
-          toast.warning('Account created, but we couldn\'t send the verification email. Please contact support.');
-        }
-      } catch (linkErr) {
-        console.error('Failed to generate/send vendor verification link:', linkErr);
-        toast.warning('Account created, but we couldn\'t send the verification email.');
-      }
+      // CUSTOM FLOW DISABLED: Supabase Auth handles verification email automatically
+      toast.success('Registration successful. Please check your inbox to verify your email.');
       navigate('/login');
 
     } catch (error: any) {

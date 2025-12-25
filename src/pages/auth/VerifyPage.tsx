@@ -39,7 +39,11 @@ const VerifyPage = () => {
                     // 1. Update users table status
                     const { error: userUpdateError } = await supabase
                         .from('users')
-                        .update({ status: 'ACTIVE' })
+                        .update({
+                            status: 'ACTIVE',
+                            email_verified: true,
+                            verified_at: new Date().toISOString()
+                        })
                         .eq('id', user.id);
 
                     if (userUpdateError) {

@@ -181,7 +181,7 @@ const VendorDashboard = () => {
           <div className="flex items-center justify-center min-h-[400px]">
             <div className="text-center">
               <Loader2 className="w-8 h-8 animate-spin text-[#4e342e] mx-auto mb-4" />
-              <p className="text-[#6d4c41]">Loading dashboard...</p>
+              <p className="text-[#6d4c41]">{t('common.loading')}...</p>
             </div>
           </div>
         </div>
@@ -195,10 +195,10 @@ const VendorDashboard = () => {
         {/* Welcome Header */}
         <div className="mb-8">
           <h1 className="text-3xl font-serif font-bold text-[#4e342e] mb-2">
-            Welcome back, {user?.firstName}!
+            {t('vendor.dashboard.title', { name: user?.firstName })}
           </h1>
           <p className="text-[#6d4c41]">
-            Here's what's happening with your business today
+            {t('vendor.dashboard.subtitle')}
           </p>
         </div>
 
@@ -208,11 +208,11 @@ const VendorDashboard = () => {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-[#6d4c41] mb-1">New Bookings</p>
+                  <p className="text-sm text-[#6d4c41] mb-1">{t('vendor.stats.newBookings')}</p>
                   <p className="text-2xl font-bold text-[#4e342e]">{stats?.newBookings || 0}</p>
                   <div className="flex items-center mt-2">
                     <Bell className="w-4 h-4 text-[#6d4c41] mr-1" />
-                    <span className="text-sm text-[#6d4c41]">{stats?.pendingBookings || 0} pending</span>
+                    <span className="text-sm text-[#6d4c41]">{stats?.pendingBookings || 0} {t('vendor.stats.pending')}</span>
                   </div>
                 </div>
                 <div className="w-12 h-12 bg-gradient-to-br from-[#4e342e] to-[#6d4c41] rounded-lg flex items-center justify-center">
@@ -226,11 +226,11 @@ const VendorDashboard = () => {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-[#6d4c41] mb-1">Completed Services</p>
+                  <p className="text-sm text-[#6d4c41] mb-1">{t('vendor.stats.completedServices')}</p>
                   <p className="text-2xl font-bold text-[#4e342e]">{stats?.completedServices || 0}</p>
                   <div className="flex items-center mt-2">
                     <CheckCircle className="w-4 h-4 text-[#6d4c41] mr-1" />
-                    <span className="text-sm text-[#6d4c41]">This month</span>
+                    <span className="text-sm text-[#6d4c41]">{t('vendor.stats.thisMonth')}</span>
                   </div>
                 </div>
                 <div className="w-12 h-12 bg-gradient-to-br from-[#4e342e] to-[#6d4c41] rounded-lg flex items-center justify-center">
@@ -244,11 +244,11 @@ const VendorDashboard = () => {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-[#6d4c41] mb-1">Monthly Revenue</p>
+                  <p className="text-sm text-[#6d4c41] mb-1">{t('vendor.stats.monthlyRevenue')}</p>
                   <p className="text-2xl font-bold text-[#4e342e]">${stats?.monthlyRevenue || 0}</p>
                   <div className="flex items-center mt-2">
                     <TrendingUp className="w-4 h-4 text-[#6d4c41] mr-1" />
-                    <span className="text-sm text-[#6d4c41]">+12.5% from last month</span>
+                    <span className="text-sm text-[#6d4c41]">+12.5% {t('vendor.stats.revenueGrowth')}</span>
                   </div>
                 </div>
                 <div className="w-12 h-12 bg-gradient-to-br from-[#4e342e] to-[#6d4c41] rounded-lg flex items-center justify-center">
@@ -262,11 +262,11 @@ const VendorDashboard = () => {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-[#6d4c41] mb-1">Total Customers</p>
+                  <p className="text-sm text-[#6d4c41] mb-1">{t('vendor.stats.totalCustomers')}</p>
                   <p className="text-2xl font-bold text-[#4e342e]">{stats?.totalCustomers || 0}</p>
                   <div className="flex items-center mt-2">
                     <Star className="w-4 h-4 text-[#6d4c41] mr-1" />
-                    <span className="text-sm text-[#6d4c41]">{stats?.averageRating || 0} avg rating</span>
+                    <span className="text-sm text-[#6d4c41]">{stats?.averageRating || 0} {t('vendor.stats.avgRating')}</span>
                   </div>
                 </div>
                 <div className="w-12 h-12 bg-gradient-to-br from-[#4e342e] to-[#6d4c41] rounded-lg flex items-center justify-center">
@@ -284,11 +284,11 @@ const VendorDashboard = () => {
               <CardHeader className="flex flex-row items-center justify-between">
                 <CardTitle className="text-[#4e342e] flex items-center">
                   <Calendar className="w-5 h-5 mr-2" />
-                  Recent Appointments
+                  {t('vendor.recentAppointments.title')}
                 </CardTitle>
                 <Link to="/vendor/appointments">
                   <Button variant="outline" size="sm" className="border-[#4e342e] text-[#4e342e] hover:bg-[#4e342e] hover:text-white">
-                    View All
+                    {t('vendor.recentAppointments.viewAll')}
                   </Button>
                 </Link>
               </CardHeader>
@@ -336,7 +336,7 @@ const VendorDashboard = () => {
                   ) : (
                     <div className="text-center py-8">
                       <Calendar className="w-12 h-12 text-[#6d4c41] mx-auto mb-4" />
-                      <p className="text-[#6d4c41]">No recent appointments</p>
+                      <p className="text-[#6d4c41]">{t('vendor.recentAppointments.noAppointments')}</p>
                     </div>
                   )}
                 </div>
@@ -349,19 +349,19 @@ const VendorDashboard = () => {
             {/* Quick Actions */}
             <Card className="border-0 bg-white shadow-lg">
               <CardHeader>
-                <CardTitle className="text-[#4e342e]">Quick Actions</CardTitle>
+                <CardTitle className="text-[#4e342e]">{t('vendor.quickActions.title')}</CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
                 <Link to="/vendor/services" className="block">
                   <Button className="w-full bg-[#4e342e] hover:bg-[#6d4c41] text-white justify-start">
                     <Plus className="w-4 h-4 mr-2" />
-                    Add New Service
+                    {t('vendor.quickActions.addService')}
                   </Button>
                 </Link>
                 <Link to="/vendor/profile" className="block">
                   <Button variant="outline" className="w-full border-[#4e342e] text-[#4e342e] hover:bg-[#4e342e] hover:text-white justify-start">
                     <Settings className="w-4 h-4 mr-2" />
-                    Profile Settings
+                    {t('vendor.quickActions.profileSettings')}
                   </Button>
                 </Link>
               </CardContent>
@@ -370,10 +370,10 @@ const VendorDashboard = () => {
             {/* Services Overview */}
             <Card className="border-0 bg-white shadow-lg">
               <CardHeader className="flex flex-row items-center justify-between">
-                <CardTitle className="text-[#4e342e]">Services</CardTitle>
+                <CardTitle className="text-[#4e342e]">{t('vendor.services.title')}</CardTitle>
                 <Link to="/vendor/services">
                   <Button variant="outline" size="sm" className="border-[#4e342e] text-[#4e342e] hover:bg-[#4e342e] hover:text-white">
-                    Manage
+                    {t('vendor.services.manage')}
                   </Button>
                 </Link>
               </CardHeader>
@@ -394,14 +394,14 @@ const VendorDashboard = () => {
                         ? 'bg-[#f8d7da]/30 text-[#4e342e]'
                         : 'bg-[#6d4c41]/20 text-[#6d4c41]'
                         }`}>
-                        {service.isActive ? 'Active' : 'Inactive'}
+                        {service.isActive ? t('vendor.services.active') : t('vendor.services.inactive')}
                       </Badge>
                     </div>
                   ))}
                   {services.length === 0 && (
                     <div className="text-center py-4">
                       <Package className="w-8 h-8 text-[#6d4c41] mx-auto mb-2" />
-                      <p className="text-sm text-[#6d4c41]">No services yet</p>
+                      <p className="text-sm text-[#6d4c41]">{t('vendor.services.noServices')}</p>
                     </div>
                   )}
                 </div>
@@ -411,27 +411,27 @@ const VendorDashboard = () => {
             {/* Business Stats */}
             <Card className="border-0 bg-white shadow-lg">
               <CardHeader>
-                <CardTitle className="text-[#4e342e]">Business Overview</CardTitle>
+                <CardTitle className="text-[#4e342e]">{t('vendor.businessOverview.title')}</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
-                    <span className="text-sm text-[#6d4c41]">Total Services</span>
+                    <span className="text-sm text-[#6d4c41]">{t('vendor.businessOverview.totalServices')}</span>
                     <span className="font-semibold text-[#4e342e]">{stats?.totalServices || 0}</span>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-sm text-[#6d4c41]">Active Services</span>
+                    <span className="text-sm text-[#6d4c41]">{t('vendor.businessOverview.activeServices')}</span>
                     <span className="font-semibold text-[#4e342e]">{services.filter(s => s.isActive).length}</span>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-sm text-[#6d4c41]">Customer Rating</span>
+                    <span className="text-sm text-[#6d4c41]">{t('vendor.businessOverview.customerRating')}</span>
                     <div className="flex items-center space-x-1">
                       <Star className="w-4 h-4 text-[#6d4c41] fill-current" />
                       <span className="font-semibold text-[#4e342e]">{stats?.averageRating || 0}</span>
                     </div>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-sm text-[#6d4c41]">Total Reviews</span>
+                    <span className="text-sm text-[#6d4c41]">{t('vendor.businessOverview.totalReviews')}</span>
                     <span className="font-semibold text-[#4e342e]">{stats?.totalReviews || 0}</span>
                   </div>
                 </div>

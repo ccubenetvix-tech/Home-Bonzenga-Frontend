@@ -242,10 +242,10 @@ const CustomerDashboard = () => {
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div>
             <h1 className="text-3xl font-serif font-bold text-[#4e342e]">
-              Hello, {profile?.firstName || 'Valued Customer'}
+              {t('dashboard.customer.hello', { name: profile?.firstName || t('dashboard.customer.valuedCustomer') })}
             </h1>
             <p className="text-[#8d6e63] mt-1">
-              Manage your appointments and explore services.
+              {t('dashboard.customer.manageAppointments')}
             </p>
           </div>
         </div>
@@ -257,7 +257,7 @@ const CustomerDashboard = () => {
 
           {/* 1. UPCOMING APPOINTMENT (Enhanced) */}
           <div className="w-full">
-            <h2 className="text-2xl font-serif font-bold text-[#4e342e] mb-6">Upcoming Appointment</h2>
+            <h2 className="text-2xl font-serif font-bold text-[#4e342e] mb-6">{t('dashboard.customer.upcomingAppointment')}</h2>
             <Card className="border-none shadow-xl bg-white overflow-hidden">
               <CardContent className="p-0">
                 {activeBooking ? (
@@ -265,7 +265,7 @@ const CustomerDashboard = () => {
                     {/* Left: Date & Status */}
                     <div className="bg-gradient-to-br from-[#4e342e] to-[#6d4c41] text-white p-8 md:w-1/3 flex flex-col justify-center items-start">
                       <div className="mb-4">
-                        <p className="text-[#d7ccc8] font-medium uppercase tracking-wider text-sm mb-1">Date</p>
+                        <p className="text-[#d7ccc8] font-medium uppercase tracking-wider text-sm mb-1">{t('dashboard.customer.date')}</p>
                         <h3 className="text-3xl font-serif font-bold">
                           {new Date(activeBooking.scheduledDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
                         </h3>
@@ -296,14 +296,14 @@ const CustomerDashboard = () => {
                               {activeBooking.beautician.firstName.charAt(0)}
                             </div>
                             <div>
-                              <p className="text-xs text-[#8d6e63] font-medium uppercase">Your Expert</p>
+                              <p className="text-xs text-[#8d6e63] font-medium uppercase">{t('dashboard.customer.yourExpert')}</p>
                               <p className="font-bold text-[#4e342e]">{activeBooking.beautician.firstName} {activeBooking.beautician.lastName}</p>
                             </div>
                           </div>
                         ) : (
                           <div className="flex items-center gap-2 text-[#8d6e63] text-sm italic bg-gray-50 p-2 rounded w-fit">
                             <Clock className="w-4 h-4" />
-                            Expert will be assigned shortly
+                            {t('dashboard.customer.expertAssignedShortly')}
                           </div>
                         )}
                       </div>
@@ -313,7 +313,7 @@ const CustomerDashboard = () => {
                           className="bg-[#4e342e] hover:bg-[#3b2c26] text-white px-8 h-10 text-sm shadow-sm"
                           onClick={() => navigate(`/customer/athome-bookings/${activeBooking.id}`)}
                         >
-                          View Details
+                          {t('dashboard.customer.viewDetails')}
                         </Button>
                       </div>
                     </div>
@@ -323,13 +323,13 @@ const CustomerDashboard = () => {
                     <div className="w-16 h-16 rounded-full bg-[#f5f5f5] flex items-center justify-center mx-auto mb-4 text-[#8d6e63]">
                       <Calendar className="w-8 h-8 opacity-50" />
                     </div>
-                    <h3 className="text-xl font-bold text-[#4e342e] mb-2 font-serif">No upcoming appointments</h3>
-                    <p className="text-[#8d6e63] mb-8 max-w-md mx-auto">Your schedule is clear. Treat yourself to a premium beauty experience today.</p>
+                    <h3 className="text-xl font-bold text-[#4e342e] mb-2 font-serif">{t('dashboard.customer.noUpcomingAppointments')}</h3>
+                    <p className="text-[#8d6e63] mb-8 max-w-md mx-auto">{t('dashboard.customer.scheduleClear')}</p>
                     <Button
                       className="bg-[#4e342e] hover:bg-[#3b2c26] text-white px-8 h-12 text-base shadow-md"
                       onClick={() => navigate('/customer/at-home-services')}
                     >
-                      Book At-Home Service
+                      {t('dashboard.customer.bookAtHomeService')}
                     </Button>
                   </div>
                 )}
@@ -339,7 +339,7 @@ const CustomerDashboard = () => {
 
           {/* 2. QUICK ACTIONS */}
           <div className="w-full">
-            <h2 className="text-2xl font-serif font-bold text-[#4e342e] mb-6">Quick Actions</h2>
+            <h2 className="text-2xl font-serif font-bold text-[#4e342e] mb-6">{t('dashboard.customer.quickActions')}</h2>
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
               {/* Book At-Home */}
               <Card
@@ -350,7 +350,7 @@ const CustomerDashboard = () => {
                   <div className="w-14 h-14 rounded-2xl bg-[#fff8e1] flex items-center justify-center text-[#ff8f00] group-hover:bg-[#ff8f00] group-hover:text-white transition-all duration-300">
                     <Home className="w-7 h-7" />
                   </div>
-                  <span className="font-bold text-[#4e342e] font-serif tracking-wide">At-Home Service</span>
+                  <span className="font-bold text-[#4e342e] font-serif tracking-wide">{t('dashboard.customer.atHomeService')}</span>
                 </CardContent>
               </Card>
 
@@ -363,7 +363,7 @@ const CustomerDashboard = () => {
                   <div className="w-14 h-14 rounded-2xl bg-[#f3e5f5] flex items-center justify-center text-[#8e24aa] group-hover:bg-[#8e24aa] group-hover:text-white transition-all duration-300">
                     <Building className="w-7 h-7" />
                   </div>
-                  <span className="font-bold text-[#4e342e] font-serif tracking-wide">Salon Visit</span>
+                  <span className="font-bold text-[#4e342e] font-serif tracking-wide">{t('dashboard.customer.salonVisit')}</span>
                 </CardContent>
               </Card>
 
@@ -376,7 +376,7 @@ const CustomerDashboard = () => {
                   <div className="w-14 h-14 rounded-2xl bg-[#e1f5fe] flex items-center justify-center text-[#0288d1] group-hover:bg-[#0288d1] group-hover:text-white transition-all duration-300">
                     <ShoppingBag className="w-7 h-7" />
                   </div>
-                  <span className="font-bold text-[#4e342e] font-serif tracking-wide">My History</span>
+                  <span className="font-bold text-[#4e342e] font-serif tracking-wide">{t('dashboard.customer.myHistory')}</span>
                 </CardContent>
               </Card>
 
@@ -389,7 +389,7 @@ const CustomerDashboard = () => {
                   <div className="w-14 h-14 rounded-2xl bg-[#e0f2f1] flex items-center justify-center text-[#00897b] group-hover:bg-[#00897b] group-hover:text-white transition-all duration-300">
                     <Edit2 className="w-7 h-7" />
                   </div>
-                  <span className="font-bold text-[#4e342e] font-serif tracking-wide">Edit Profile</span>
+                  <span className="font-bold text-[#4e342e] font-serif tracking-wide">{t('dashboard.customer.editProfile')}</span>
                 </CardContent>
               </Card>
             </div>
@@ -399,9 +399,9 @@ const CustomerDashboard = () => {
           {/* 3. RECENT BEAUTY JOURNEY */}
           <div>
             <div className="flex items-center justify-between mb-6">
-              <h3 className="font-serif text-2xl font-bold text-[#4e342e]">Recent Beauty Journey</h3>
+              <h3 className="font-serif text-2xl font-bold text-[#4e342e]">{t('dashboard.customer.recentBeautyJourney')}</h3>
               <Button variant="link" className="text-[#8d6e63] hover:text-[#4e342e] font-medium" onClick={() => navigate('/customer/bookings')}>
-                View All History <ArrowRight className="w-4 h-4 ml-1" />
+                {t('dashboard.customer.viewAllHistory')} <ArrowRight className="w-4 h-4 ml-1" />
               </Button>
             </div>
 
@@ -428,14 +428,14 @@ const CustomerDashboard = () => {
                           className="w-full text-xs font-medium border-[#d7ccc8] text-[#6d4c41]"
                           onClick={() => navigate(`/customer/athome-bookings/${booking.id}`)}
                         >
-                          Details
+                          {t('dashboard.customer.details')}
                         </Button>
                         {booking.status === 'COMPLETED' && (
                           <Button
                             className="w-full bg-[#4e342e] text-white hover:bg-[#3b2c26] text-xs font-medium"
                             onClick={() => navigate('/customer/at-home-services', { state: { rebook: booking } })}
                           >
-                            Rebook
+                            {t('dashboard.customer.rebook')}
                           </Button>
                         )}
                       </div>
@@ -445,7 +445,7 @@ const CustomerDashboard = () => {
               </div>
             ) : (
               <div className="text-center py-12 bg-white rounded-2xl border border-dashed border-[#d7ccc8]">
-                <p className="text-[#8d6e63]">No history yet. Start your journey by booking a service above!</p>
+                <p className="text-[#8d6e63]">{t('dashboard.customer.noHistoryYet')}</p>
               </div>
             )}
           </div>

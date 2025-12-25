@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { api } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { motion } from 'framer-motion';
 import Navigation from '@/components/Navigation';
 import Lottie from 'lottie-react';
-import { 
+import {
   Home,
   UserCheck,
   Star,
@@ -81,7 +82,7 @@ const normalizeCategory = (name: string) => {
 
 const mergeWithDefaults = (categories: ServiceCategory[]): ServiceCategory[] => {
   const map = new Map<string, Set<string>>();
-  
+
   categories.forEach(({ category, services }) => {
     const normalized = normalizeCategory(category);
     if (!map.has(normalized)) {
@@ -105,6 +106,7 @@ const mergeWithDefaults = (categories: ServiceCategory[]): ServiceCategory[] => 
 };
 
 const AtHomeServicesPage = () => {
+  const { t } = useTranslation();
   const [productOption, setProductOption] = useState<'with' | 'without' | null>(null);
   const [serviceCategories, setServiceCategories] = useState<ServiceCategory[]>([]);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -182,7 +184,7 @@ const AtHomeServicesPage = () => {
 
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 w-full relative z-10">
           <div className="text-center">
-            <motion.div 
+            <motion.div
               className="space-y-6"
               initial="initial"
               animate="animate"
@@ -191,42 +193,42 @@ const AtHomeServicesPage = () => {
               <motion.div variants={fadeInUp}>
                 <div className="inline-flex items-center bg-gradient-to-r from-[#f8d7da] to-[#f0c8cc] rounded-full px-8 py-4 mb-8 shadow-lg border border-[#f8d7da]/30">
                   <Sparkles className="w-6 h-6 text-[#4e342e] mr-3" />
-                  <span className="text-sm font-bold text-[#4e342e] uppercase tracking-wide">PREMIUM AT-HOME SERVICES</span>
+                  <span className="text-sm font-bold text-[#4e342e] uppercase tracking-wide">{t('atHome.intro.title').toUpperCase()}</span>
                 </div>
               </motion.div>
 
-              <motion.h1 
+              <motion.h1
                 className="text-4xl lg:text-5xl xl:text-6xl font-serif font-bold text-[#4e342e] leading-tight"
                 variants={fadeInUp}
               >
                 Salon Luxury,
                 <span className="block text-transparent bg-gradient-to-r from-[#4e342e] to-[#6d4c41] bg-clip-text relative">
-                  Right at Your Home
+                  {t('atHome.intro.subtitle')}
                   <span className="absolute -right-3 -top-3 text-3xl">✨</span>
                 </span>
               </motion.h1>
 
-              <motion.p 
+              <motion.p
                 className="text-xl lg:text-2xl text-[#6d4c41] leading-relaxed font-sans max-w-3xl mx-auto"
                 variants={fadeInUp}
               >
                 Verified beauticians, with or without products — all managed by our trusted professional team.
               </motion.p>
 
-              <motion.div 
+              <motion.div
                 className="pt-8"
                 variants={fadeInUp}
               >
                 <Link to="/customer/at-home-services/select-option">
                   <Button className="bg-gradient-to-r from-[#4e342e] to-[#6d4c41] hover:from-[#3b2c26] hover:to-[#5a3520] text-white px-10 py-5 text-xl font-bold rounded-3xl shadow-2xl hover:shadow-3xl transition-all duration-300 group transform hover:scale-105">
                     <Home className="w-6 h-6 mr-3 group-hover:scale-110 transition-transform" />
-                    Book Your At-Home Service
+                    {t('atHome.intro.getStarted')}
                     <ArrowRight className="w-6 h-6 ml-3 group-hover:translate-x-2 transition-transform" />
                   </Button>
                 </Link>
               </motion.div>
 
-             
+
             </motion.div>
 
           </div>
@@ -236,7 +238,7 @@ const AtHomeServicesPage = () => {
       {/* How It Works - 4 Step Flow */}
       <section className="py-24 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <motion.div 
+          <motion.div
             className="text-center mb-20"
             initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
@@ -255,7 +257,7 @@ const AtHomeServicesPage = () => {
             </p>
           </motion.div>
 
-          <motion.div 
+          <motion.div
             className="grid grid-cols-1 lg:grid-cols-4 gap-8"
             variants={stagger}
             initial="initial"
@@ -310,7 +312,7 @@ const AtHomeServicesPage = () => {
                         <step.icon className="w-12 h-12 text-white" />
                       </div>
                     </div>
-                    
+
                     <h3 className="text-xl font-serif font-bold mb-4 text-[#4e342e]">
                       {step.title}
                     </h3>
@@ -328,7 +330,7 @@ const AtHomeServicesPage = () => {
       {/* Services Available At Home */}
       <section className="py-24 bg-gradient-to-br from-[#fdf6f0] to-[#f8e8e0]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <motion.div 
+          <motion.div
             className="text-center mb-20"
             initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
@@ -348,19 +350,19 @@ const AtHomeServicesPage = () => {
             )}
           </motion.div>
 
-            {loading ? (
-              <div className="text-center py-12">
-                <div className="text-[#4e342e] text-lg">Loading services...</div>
-              </div>
-            ) : serviceCategories.length > 0 ? (
-              <motion.div 
-                className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8"
-                variants={stagger}
-                initial="initial"
-                whileInView="animate"
-                viewport={{ once: true }}
-              >
-                {serviceCategories.map((serviceData, index) => {
+          {loading ? (
+            <div className="text-center py-12">
+              <div className="text-[#4e342e] text-lg">Loading services...</div>
+            </div>
+          ) : serviceCategories.length > 0 ? (
+            <motion.div
+              className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8"
+              variants={stagger}
+              initial="initial"
+              whileInView="animate"
+              viewport={{ once: true }}
+            >
+              {serviceCategories.map((serviceData, index) => {
                 // Map category names to images and icons
                 const categoryConfig: Record<string, { image: string; icon: any; color: string }> = {
                   'Hair Styling': { image: hair9, icon: Scissors, color: 'from-[#4e342e] to-[#6d4c41]' },
@@ -369,64 +371,65 @@ const AtHomeServicesPage = () => {
                   'Nail Care': { image: nail, icon: Star, color: 'from-[#4e342e] to-[#6d4c41]' },
                   'Other': { image: spa1, icon: Brush, color: 'from-[#4e342e] to-[#6d4c41]' }
                 };
-                
+
                 const config = categoryConfig[serviceData.category] || categoryConfig['Other'];
-                
+
                 return (
-                <motion.div key={index} variants={fadeInUp}>
-                  <Card className="group hover:shadow-2xl transition-all duration-500 border-0 bg-white overflow-hidden rounded-3xl h-full">
-                    <div className="relative h-48 overflow-hidden">
-                      <img
-                        src={config.image}
-                        alt={serviceData.category}
-                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                      />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-black/10" />
-                      <div className="absolute top-4 left-4">
-                        <div className={`w-12 h-12 bg-gradient-to-br ${config.color} rounded-2xl flex items-center justify-center shadow-lg`}>
-                          <config.icon className="w-6 h-6 text-white" />
+                  <motion.div key={index} variants={fadeInUp}>
+                    <Card className="group hover:shadow-2xl transition-all duration-500 border-0 bg-white overflow-hidden rounded-3xl h-full">
+                      <div className="relative h-48 overflow-hidden">
+                        <img
+                          src={config.image}
+                          alt={serviceData.category}
+                          className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-black/10" />
+                        <div className="absolute top-4 left-4">
+                          <div className={`w-12 h-12 bg-gradient-to-br ${config.color} rounded-2xl flex items-center justify-center shadow-lg`}>
+                            <config.icon className="w-6 h-6 text-white" />
+                          </div>
                         </div>
                       </div>
-                    </div>
-                    <CardContent className="p-6">
-                      <h3 className="text-xl font-serif font-bold text-[#4e342e] mb-4">
-                        {serviceData.category}
-                      </h3>
-                      <div className="space-y-2 max-h-40 overflow-y-auto">
-                        {serviceData.services.slice(0, 8).map((item, serviceIndex) => (
-                          <div key={serviceIndex} className="flex items-center">
-                            <CheckCircle className="w-4 h-4 text-green-500 mr-3 flex-shrink-0" />
-                            <span className="text-[#6d4c41] font-sans text-sm">{item}</span>
-                          </div>
-                        ))}
-                        {serviceData.services.length > 8 && (
-                          <div className="text-[#6d4c41] font-sans text-sm italic">
-                            +{serviceData.services.length - 8} more services
-                          </div>
-                        )}
-                      </div>
-                    </CardContent>
-                  </Card>
-                </motion.div>
-              );})}
-              </motion.div>
-            ) : (
-              <div className="text-center py-12">
-                <div className="text-[#6d4c41] text-lg mb-4">
-                  {loadError || 'No services are currently available.'}
-                </div>
-                <p className="text-[#6d4c41] text-sm">
-                  Please check back later or contact support for assistance.
-                </p>
+                      <CardContent className="p-6">
+                        <h3 className="text-xl font-serif font-bold text-[#4e342e] mb-4">
+                          {serviceData.category}
+                        </h3>
+                        <div className="space-y-2 max-h-40 overflow-y-auto">
+                          {serviceData.services.slice(0, 8).map((item, serviceIndex) => (
+                            <div key={serviceIndex} className="flex items-center">
+                              <CheckCircle className="w-4 h-4 text-green-500 mr-3 flex-shrink-0" />
+                              <span className="text-[#6d4c41] font-sans text-sm">{item}</span>
+                            </div>
+                          ))}
+                          {serviceData.services.length > 8 && (
+                            <div className="text-[#6d4c41] font-sans text-sm italic">
+                              +{serviceData.services.length - 8} more services
+                            </div>
+                          )}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </motion.div>
+                );
+              })}
+            </motion.div>
+          ) : (
+            <div className="text-center py-12">
+              <div className="text-[#6d4c41] text-lg mb-4">
+                {loadError || 'No services are currently available.'}
               </div>
-            )}
+              <p className="text-[#6d4c41] text-sm">
+                Please check back later or contact support for assistance.
+              </p>
+            </div>
+          )}
         </div>
       </section>
 
       {/* Products Option - Ad Style Highlight */}
       <section className="py-24 bg-white">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-          <motion.div 
+          <motion.div
             className="text-center mb-16"
             initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
@@ -445,7 +448,7 @@ const AtHomeServicesPage = () => {
           </motion.div>
 
           {/* Product Examples */}
-          <motion.div 
+          <motion.div
             className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-12"
             variants={stagger}
             initial="initial"
@@ -461,8 +464,8 @@ const AtHomeServicesPage = () => {
               <motion.div key={index} variants={fadeInUp}>
                 <Card className="text-center p-6 bg-gradient-to-br from-[#fdf6f0] to-white border-0 rounded-2xl hover:shadow-lg transition-all duration-300">
                   <div className="w-20 h-20 mx-auto mb-4">
-                    <Lottie 
-                      animationData={product.animation} 
+                    <Lottie
+                      animationData={product.animation}
                       loop={true}
                       autoplay={true}
                       style={{ width: '100%', height: '100%' }}
@@ -476,44 +479,42 @@ const AtHomeServicesPage = () => {
           </motion.div>
 
           {/* Toggle Options */}
-          <motion.div 
+          <motion.div
             className="flex flex-col sm:flex-row gap-6 justify-center"
             initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.6, delay: 0.3 }}
           >
-            <Card 
-              className={`cursor-pointer transition-all duration-300 p-8 rounded-3xl border-2 ${
-                productOption === 'with' 
-                  ? 'border-[#4e342e] bg-[#f8d7da]/10 shadow-xl' 
+            <Card
+              className={`cursor-pointer transition-all duration-300 p-8 rounded-3xl border-2 ${productOption === 'with'
+                  ? 'border-[#4e342e] bg-[#f8d7da]/10 shadow-xl'
                   : 'border-[#f8d7da]/30 bg-white hover:border-[#4e342e]/50 hover:shadow-lg'
-              }`}
+                }`}
               onClick={() => setProductOption('with')}
             >
               <CardContent className="text-center p-0">
                 <div className="w-16 h-16 bg-gradient-to-br from-[#4e342e] to-[#6d4c41] rounded-full flex items-center justify-center mx-auto mb-4">
                   <Package className="w-8 h-8 text-white" />
                 </div>
-                <h3 className="text-xl font-serif font-bold text-[#4e342e] mb-3">With Products</h3>
-                <p className="text-[#6d4c41] font-sans">Our stylist brings all necessary professional products and tools</p>
+                <h3 className="text-xl font-serif font-bold text-[#4e342e] mb-3">{t('atHome.intro.withProducts')}</h3>
+                <p className="text-[#6d4c41] font-sans">{t('atHome.intro.withProductsDesc')}</p>
               </CardContent>
             </Card>
 
-            <Card 
-              className={`cursor-pointer transition-all duration-300 p-8 rounded-3xl border-2 ${
-                productOption === 'without' 
-                  ? 'border-[#4e342e] bg-[#f8d7da]/10 shadow-xl' 
+            <Card
+              className={`cursor-pointer transition-all duration-300 p-8 rounded-3xl border-2 ${productOption === 'without'
+                  ? 'border-[#4e342e] bg-[#f8d7da]/10 shadow-xl'
                   : 'border-[#f8d7da]/30 bg-white hover:border-[#4e342e]/50 hover:shadow-lg'
-              }`}
+                }`}
               onClick={() => setProductOption('without')}
             >
               <CardContent className="text-center p-0">
                 <div className="w-16 h-16 bg-gradient-to-br from-[#4e342e] to-[#6d4c41] rounded-full flex items-center justify-center mx-auto mb-4">
                   <Home className="w-8 h-8 text-white" />
                 </div>
-                <h3 className="text-xl font-serif font-bold text-[#4e342e] mb-3">Without Products</h3>
-                <p className="text-[#6d4c41] font-sans">Use your own products while our stylist provides professional tools and expertise</p>
+                <h3 className="text-xl font-serif font-bold text-[#4e342e] mb-3">{t('atHome.intro.withoutProducts')}</h3>
+                <p className="text-[#6d4c41] font-sans">{t('atHome.intro.withoutProductsDesc')}</p>
               </CardContent>
             </Card>
           </motion.div>
@@ -523,7 +524,7 @@ const AtHomeServicesPage = () => {
       {/* Why Trust Us - Unique Style */}
       <section className="py-24 bg-gradient-to-br from-[#fdf6f0] to-[#f8e8e0]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <motion.div 
+          <motion.div
             className="text-center mb-20"
             initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
@@ -538,7 +539,7 @@ const AtHomeServicesPage = () => {
             </p>
           </motion.div>
 
-          <motion.div 
+          <motion.div
             className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8"
             variants={stagger}
             initial="initial"
@@ -611,7 +612,7 @@ const AtHomeServicesPage = () => {
               <Sparkles className="w-6 h-6 text-white mr-3" />
               <span className="text-sm font-bold text-white uppercase tracking-wide">READY TO EXPERIENCE LUXURY?</span>
             </div>
-            
+
             <h2 className="text-4xl md:text-5xl font-serif font-bold mb-8 leading-tight">
               Experience premium beauty services
               <span className="block text-[#f8d7da] mt-2">
@@ -621,7 +622,7 @@ const AtHomeServicesPage = () => {
             <p className="text-xl text-white/90 mb-10 font-sans leading-relaxed max-w-3xl mx-auto">
               Professional beauticians, managed service quality, flexible product options - all at your doorstep
             </p>
-            
+
             <Link to="/customer/at-home-services/select-option">
               <Button className="bg-white text-[#4e342e] hover:bg-[#f8d7da] hover:text-[#4e342e] px-12 py-6 text-xl font-bold rounded-3xl shadow-2xl hover:shadow-3xl transition-all duration-300 group transform hover:scale-105">
                 <Home className="w-6 h-6 mr-4 group-hover:scale-110 transition-transform" />
@@ -629,7 +630,7 @@ const AtHomeServicesPage = () => {
                 <ArrowRight className="w-6 h-6 ml-4 group-hover:translate-x-2 transition-transform" />
               </Button>
             </Link>
-            
+
             <div className="mt-8 flex flex-col sm:flex-row justify-center items-center gap-6 text-white/90">
               <div className="flex items-center">
                 <CheckCircle className="w-5 h-5 text-[#f8d7da] mr-2" />
