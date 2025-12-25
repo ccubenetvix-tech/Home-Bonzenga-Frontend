@@ -40,3 +40,9 @@ pnpm-debug.log*
 Thumbs.db
 .vscode/
 .idea/
+node_modules/
+.env
+dist
+.vite
+npm-cache
+.npm
